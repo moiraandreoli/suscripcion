@@ -770,9 +770,6 @@ select.bims-input { box-shadow: var(--shadow-field); }
         <!-- NUEVO: no validado contra prod — pago con tarjeta. BIMS no toma los datos de la tarjeta: se paga en la pasarela de Bancard -->
         <section class="bims-card" id="tarjeta" hidden>
           <div class="bims-card__section">
-            <h2 class="bims-panel-title">Pago con tarjeta</h2>
-            <p class="pay-lead">Vas a pagar <b id="tarjetaImporte">Gs. 1.527.400</b> con tu tarjeta.</p>
-            <p class="bims-dropzone__hint" style="margin:-10px 0 14px">Vas a completar el pago en el sitio seguro de Bancard.</p>
             <div class="pay-actions" style="justify-content:flex-start">
               <button class="bims-btn bims-btn--success" id="payCard">Pagar <span id="payCardMonto">Gs. 1.527.400</span> con Bancard</button>
             </div>
@@ -785,11 +782,11 @@ select.bims-input { box-shadow: var(--shadow-field); }
         <section class="bims-card bancard-card">
           <div class="bims-card__section">
             <div class="bancard-icon"><span class="bims-spinner bims-spinner--lg"></span></div>
-            <h2 class="done-title">Te estamos llevando a Bancard</h2>
-            <p class="done-sub">Vas a pagar <b id="bancardImporte">Gs. 1.527.400</b> en su sitio seguro.</p>
+            <h2 class="done-title">Te vamos a redirigir a Bancard</h2>
+            <p class="done-sub">Vas a pagar <b id="bancardImporte">Gs. 1.527.400</b> en su sitio seguro. Hacé clic en "Ir a Bancard" para continuar.</p>
             <div class="bims-progress" style="margin-top:16px"><div class="bims-progress__bar" id="bancardProgressBar"></div></div>
             <p class="bancard-ssl">Conexión segura (SSL)</p>
-            <!-- Si el navegador bloquea la pestaña de Bancard, queda este link para abrirla a mano -->
+            <!-- NUEVO: sin redirección automática — el usuario nunca sale de esta pestaña salvo que haga click acá (abre en pestaña nueva) -->
             <a class="bims-btn bims-btn--success" id="bancardManualLink" href="#" target="_blank" rel="noopener" hidden style="margin-top:16px">Ir a Bancard</a>
             <!-- NUEVO: proto — simula la vuelta de Bancard (en prod, Bancard redirige de nuevo a BIMS con el resultado) -->
             <div class="bancard-proto-links" id="bancardProtoLinks" hidden>
@@ -844,7 +841,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
               </tbody>
             </table>
             <div class="done-actions">
-              <button class="bims-btn bims-btn--default" id="doneVerCuenta">Ver estado de cuenta</button>
+              <button class="bims-btn bims-btn--default" id="doneVerCuenta">Ver estado del pago</button>
               <button class="bims-btn bims-btn--primary" id="doneIrInicio">Ir al inicio</button>
             </div>
           </div>
@@ -864,7 +861,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
     'activo':      { label: 'Activo',      badge: 'success' },
     'por-vencer':  { label: 'Por vencer',  badge: 'warning' },
     'vencido':     { label: 'Vencido',     badge: 'danger'  },
-    'en-revision': { label: 'En revisión', badge: 'warning', dot: true },
+    'revision': { label: 'En revisión', badge: 'warning', dot: true },
   };
   function getEstado() {
     const p = new URLSearchParams(location.search).get('estado');
@@ -873,12 +870,13 @@ select.bims-input { box-shadow: var(--shadow-field); }
   function fmtGs(n) { return 'Gs. ' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 
   const ESTADO_ORIGEN = getEstado();
-  const CONGELADO = ESTADO_ORIGEN === 'vencido' || ESTADO_ORIGEN === 'en-revision';
+  const CONGELADO = ESTADO_ORIGEN === 'vencido' || ESTADO_ORIGEN === 'revision';
   const FECHA_VENCIMIENTO = '18-09-2026';
   const ADICIONALES = CONGELADO ? 1326000 : 1187400; // hasta el vencimiento vs. hasta hoy
   // 3/5: Vencido y Por vencer permiten elegir 30/180 días; en Activo y En revisión el plan es informativo
   const PUEDE_ELEGIR_PLAN = ESTADO_ORIGEN === 'vencido' || ESTADO_ORIGEN === 'por-vencer';
-  let ESTADO_DESTINO = ESTADO_ORIGEN; // a dónde navegan "Ir al inicio" / "Ver estado de cuenta"
+  let ESTADO_DESTINO = ESTADO_ORIGEN; // a dónde navegan "Ir al inicio" / "Ver estado del pago"
+  let DESTINO_QUERY = ''; // parámetros extra (monto/fecha del pago), para que suscripcion-resumen.html?estado=revision muestre lo que realmente se pagó
 
   // =========================================================
   // NUEVO: 5. Ciclos — el plan es prepago (se paga el ciclo SIGUIENTE, no el actual)
@@ -931,7 +929,6 @@ select.bims-input { box-shadow: var(--shadow-field); }
   const resumenNota = document.getElementById('resumenNotaProximaFactura');
   const transferImporte = document.getElementById('transferImporte');
   const transferCopyBtn = document.getElementById('transferCopyBtn');
-  const tarjetaImporte = document.getElementById('tarjetaImporte');
   const payCardMonto = document.getElementById('payCardMonto');
 
   function proximoVencimiento(key) { return PUEDE_CALCULAR_CICLO_NUEVO ? CICLO_NUEVO_FIN[key] : null; }
@@ -959,7 +956,6 @@ select.bims-input { box-shadow: var(--shadow-field); }
     resumenTotal.textContent = fmtGs(TOTAL);
     transferImporte.textContent = fmtGs(TOTAL);
     transferCopyBtn.dataset.copy = String(TOTAL);
-    tarjetaImporte.textContent = fmtGs(TOTAL);
     payCardMonto.textContent = fmtGs(TOTAL);
 
     // Nota: los días entre el pago y el vencimiento pasan a la próxima factura
@@ -1069,9 +1065,13 @@ select.bims-input { box-shadow: var(--shadow-field); }
   const doneProximoRow = document.getElementById('doneProximoRow');
   const doneProximo = document.getElementById('doneProximo');
 
+  function fechaActual() {
+    const d = new Date(), pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+  }
   function fechaHoraActual() {
     const d = new Date(), pad = n => String(n).padStart(2, '0');
-    return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())} hs`;
+    return `${fechaActual()}, ${pad(d.getHours())}:${pad(d.getMinutes())} hs`;
   }
 
   function mostrarDone(tipo) {
@@ -1091,13 +1091,16 @@ select.bims-input { box-shadow: var(--shadow-field); }
       document.getElementById('doneFile').textContent = document.getElementById('upName').textContent;
       doneMontoLabel.textContent = 'Monto a validar';
       doneRestartWrap.hidden = false;
+      // "Ver estado del pago" / "Ir al inicio" llevan siempre a suscripcion-resumen.html?estado=revision
+      // (ahí se ve el aviso de pago en revisión, para que no se pague de nuevo). Se pasan el
+      // monto y la fecha reales para que el aviso no muestre siempre el mismo ejemplo fijo.
+      ESTADO_DESTINO = 'revision';
+      DESTINO_QUERY = '&monto=' + TOTAL + '&fecha=' + encodeURIComponent(fechaActual());
       if (ESTADO_ORIGEN === 'vencido') {
         // Vencido + comprobante de transferencia → En revisión (la cuenta no se bloquea)
-        ESTADO_DESTINO = 'en-revision';
         doneSub.innerHTML = 'Tu cuenta pasa a <b>En revisión</b> mientras Operaciones valida el pago — mientras tanto no se bloquea tu acceso a BIMS.';
       } else {
-        // Activo/Por vencer + comprobante → el tag no cambia; la confirmación aclara "Pago en revisión"
-        ESTADO_DESTINO = ESTADO_ORIGEN;
+        // Activo/Por vencer + comprobante → el tag no cambia en esta pantalla; la confirmación aclara "Pago en revisión"
         doneSub.innerHTML = '<b>Pago en revisión</b>: lo validaremos en un plazo de hasta 48 horas hábiles. Mientras tanto, podés seguir usando BIMS con normalidad.';
       }
     } else {
@@ -1128,8 +1131,9 @@ select.bims-input { box-shadow: var(--shadow-field); }
 
   // =========================================================
   // NUEVO: no existe en prod — pago con tarjeta vía Bancard.
-  // BIMS no toma los datos de la tarjeta: se redirige a la pasarela de Bancard
-  // en una pestaña nueva y se simula la vuelta con los links de "Simular pago...".
+  // BIMS no toma los datos de la tarjeta: se abre Bancard en una pestaña nueva y se
+  // simula la vuelta con los links de "Simular pago...". Sin redirección automática:
+  // el usuario nunca sale de esta pestaña salvo que haga click en "Ir a Bancard".
   // El process_id de la URL lo genera el backend en cada intento de pago y VENCE
   // a los pocos minutos — el de acá es fijo, solo de ejemplo para el prototipo.
   // =========================================================
@@ -1149,24 +1153,18 @@ select.bims-input { box-shadow: var(--shadow-field); }
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     bancardImporte.textContent = fmtGs(TOTAL);
-    bancardManualLink.hidden = true;
     bancardManualLink.href = BANCARD_URL;
-    bancardProtoLinks.hidden = true;
+    // El botón "Ir a Bancard" (abre en pestaña nueva, target="_blank") y los links de
+    // simulación se ven apenas aparece la pantalla — no hay redirección automática.
+    bancardManualLink.hidden = false;
+    bancardProtoLinks.hidden = false;
 
-    // Barra de progreso animada (~3s) simulando la conexión con Bancard
+    // Barra de progreso animada (~3s), solo de ambientación ("conectando con Bancard…")
     bancardProgressBar.style.transition = 'none';
     bancardProgressBar.style.width = '0%';
     void bancardProgressBar.offsetWidth; // fuerza reflow para poder reiniciar la animación
     bancardProgressBar.style.transition = 'width 3s linear';
     requestAnimationFrame(() => { bancardProgressBar.style.width = '100%'; });
-
-    setTimeout(() => {
-      // En un navegador real, abrir una pestaña desde un setTimeout (no un click directo)
-      // suele bloquearse — por eso queda el botón "Ir a Bancard" como respaldo.
-      const ventana = window.open(BANCARD_URL, '_blank', 'noopener');
-      if (!ventana) bancardManualLink.hidden = false;
-      bancardProtoLinks.hidden = false;
-    }, 3000);
   }
   document.getElementById('payCard').addEventListener('click', mostrarRedireccionBancard);
 
@@ -1200,8 +1198,8 @@ select.bims-input { box-shadow: var(--shadow-field); }
     e.preventDefault(); doneWrap.hidden = true; document.getElementById('payFlow').hidden = false;
     document.getElementById('mobileStepper').hidden = false;
   });
-  document.getElementById('doneIrInicio').addEventListener('click', () => { location.href = 'index.html?estado=' + ESTADO_DESTINO; });
-  document.getElementById('doneVerCuenta').addEventListener('click', () => { location.href = 'index.html?estado=' + ESTADO_DESTINO; });
+  document.getElementById('doneIrInicio').addEventListener('click', () => { location.href = 'index.html?estado=' + ESTADO_DESTINO + DESTINO_QUERY; });
+  document.getElementById('doneVerCuenta').addEventListener('click', () => { location.href = 'index.html?estado=' + ESTADO_DESTINO + DESTINO_QUERY; });
 
   // NUEVO: entrada directa por querystring para el proto — ?paso=redireccion o ?retorno=aprobado|rechazado
   // (se combinan con ?estado=..., ej. pagar-suscripcion.html?estado=vencido&paso=redireccion)
