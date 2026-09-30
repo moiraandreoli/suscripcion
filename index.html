@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Suscripción · BIMS</title>
 <style>
 /* =========================================================
@@ -382,6 +383,19 @@ a:hover { text-decoration: underline; }
   background: #f0f8ff; color: var(--bims-text);
   font-size: var(--fs-sm); line-height: 12px; text-transform: uppercase;
 }
+/* NUEVO: variantes de color del tag de estado de suscripción (reutiliza colores ya validados: promo--b/sim-tag para amarillo, bims-alert-danger para rojo) */
+.bims-badge--success { background: #dff0d8; color: #3c763d; }
+.bims-badge--warning { background: #f5e3a3; color: #8a6d1c; }
+.bims-badge--danger { background: #f2dede; color: #a94442; }
+.bims-badge--dot { display: inline-flex; align-items: center; gap: 5px; }
+.bims-badge__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: bims-blink 1.4s ease-in-out infinite; }
+@keyframes bims-blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+/* NUEVO: fila título + tag de estado */
+.bims-page-header__title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* NUEVO: selector de estado — control exclusivo del prototipo, no existe en prod */
+.proto-state-selector { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 10px 14px; background: var(--bims-bg-subtle); border: 1px dashed var(--bims-border-strong); border-radius: var(--radius-sm); font-size: 13px; color: var(--bims-text-secondary); flex-wrap: wrap; }
+.proto-state-selector .bims-btn-group a { text-decoration: none; color: var(--bims-text); }
+
 .bims-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: flex-start; justify-content: center; padding-top: 30px; }
 .bims-modal { width: 600px; max-width: calc(100% - 20px); background: #fff; border: 1px solid rgba(0,0,0,.2); border-radius: var(--radius-md); box-shadow: var(--shadow-modal); }
 .bims-modal__head { padding: 15px; border-bottom: 1px solid #e5e5e5; font-size: 18px; } /* (~) Bootstrap 3 default */
@@ -524,6 +538,107 @@ tr.sub:hover td { background: #eef2f5; }
 .paybar__value { font-family: var(--bims-font-bold); font-weight: 700; font-size: 20px; color: var(--bims-link); }
 .paybar .bims-btn { padding: 6px 24px; }
 
+/* =========================================================
+   Responsive (agregado) — breakpoints Bootstrap 3
+   <768px mobile · 768–991px tablet (= desktop, sin cambios) · ≥992px desktop
+   El desktop no se modifica: los estilos de abajo solo actúan dentro de @media.
+   ========================================================= */
+
+/* NUEVO: no validado contra prod — botón hamburguesa del topbar (oculto salvo en mobile) */
+.bims-topbar__burger { display: none; width: 40px; flex-shrink: 0; align-items: center; justify-content: center; border: 0; background: none; padding: 0; cursor: pointer; }
+/* NUEVO: no validado contra prod — texto del buscador (para poder ocultarlo en mobile) */
+.bims-search__text { white-space: nowrap; }
+/* NUEVO: no validado contra prod — stepper compacto de mobile (oculto salvo en mobile) */
+.bims-mobile-stepper { display: none; }
+
+@media (max-width: 767px) {
+  /* ---- Topbar: hamburguesa en vez de los módulos ---- */
+  .bims-topbar__burger { display: flex; }
+  .bims-topbar__logo { width: auto; padding: 0 14px; }
+  .bims-topbar__nav {
+    display: none; flex-direction: column; align-items: stretch; gap: 0;
+    position: fixed; top: calc(var(--topbar-h) + var(--subbar-h)); left: 0; right: 0; z-index: 50;
+    padding: 6px 0; background: var(--bims-navy); box-shadow: 0 8px 16px rgba(0,0,0,.2);
+  }
+  .bims-topbar__nav.is-open { display: flex; }
+  .bims-topbar__nav a { padding: 12px var(--gutter); border-bottom: 1px solid rgba(255,255,255,.1); }
+  .bims-topbar__nav a::after { display: none; }
+  .bims-topbar__right { gap: 16px; }
+
+  /* ---- Subbar: ocultar el buscador, dejar solo el ícono ---- */
+  .bims-search { width: 34px; padding: 0; justify-content: center; margin-right: var(--gutter); }
+  .bims-search__text { display: none; }
+
+  /* ---- Stepper compacto ---- */
+  .bims-mobile-stepper {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px var(--gutter);
+    background: #fff; border-bottom: 1px solid var(--bims-border);
+    font-size: var(--fs-sm); color: var(--bims-text-secondary);
+  }
+  .bims-mobile-stepper__n {
+    width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bims-link); color: #fff; font-size: 11px;
+    font-family: var(--bims-font-bold); font-weight: 700;
+  }
+
+  /* ---- Grillas de 2 columnas → 1 columna ---- */
+  .kpis { grid-template-columns: 1fr; gap: 12px; margin: 14px 0; }
+
+  /* ---- Promo: el link pasa a su propia línea ---- */
+  .promo { flex-wrap: wrap; }
+  .promo a { flex: 1 0 100%; margin-top: 4px; }
+
+  /* ---- Detalle de consumos: tabla → tarjetas ---- */
+  .cons .bims-table-wrap { overflow: visible; }
+  .cons table { display: block; border: 0; background: transparent; }
+  .cons thead { display: none; }
+  .cons tbody { display: block; }
+  .cons tbody tr {
+    display: flex; flex-wrap: wrap;
+    background: #fff; border: 1px solid var(--bims-border); border-radius: var(--radius-sm);
+    margin-top: 10px; overflow: hidden;
+  }
+  .cons tbody tr:first-child { margin-top: 0; }
+  .cons tbody tr:is(.sub, .detail) {
+    margin-top: -1px; border-top: 1px dashed var(--bims-border); border-radius: 0;
+    background: var(--bims-bg-subtle);
+  }
+  .cons tbody tr:not(.sub):not(.detail):not(.is-total):has(+ tr:is(.sub, .detail)) {
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  }
+  .cons tbody tr:is(.sub, .detail):has(+ tr:is(.sub, .detail)) { border-radius: 0; }
+  .cons tbody tr.is-total { margin-top: 14px; background: var(--bims-bg-subtle); }
+
+  .cons td {
+    flex: 1 1 100%; display: block;
+    border: 0 !important; height: auto; white-space: normal;
+    padding: 8px 12px;
+  }
+  .cons td:empty { display: none; }
+  .cons td.muted { display: none !important; }
+
+  .cons tbody tr:not(.sub):not(.detail) td:first-child {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--bims-font-bold); font-weight: 700;
+    background: var(--bims-bg-subtle); border-bottom: 1px solid var(--bims-border) !important;
+  }
+  .cons tbody tr.sub td:first-child { padding-left: 22px; font-size: 12px; color: var(--bims-text-secondary); }
+
+  .cons tbody tr td:nth-child(2), .cons tbody tr td:nth-child(3) {
+    flex: 0 0 auto; font-size: 13px; color: var(--bims-text-secondary);
+  }
+  .cons tbody tr td:nth-child(3):not(:empty)::before { content: "× "; }
+  .cons tbody tr td:nth-child(2):not(:empty)::before { content: "Cant. "; }
+
+  .cons tbody tr td:nth-child(4), .cons tbody tr td:nth-child(5) {
+    display: flex; justify-content: space-between; gap: 10px; font-size: 13px;
+  }
+  .cons tbody tr td:nth-child(4):not(:empty)::before { content: "A pagar hoy"; font-weight: 400; color: var(--bims-text-secondary); }
+  .cons tbody tr td:nth-child(5):not(:empty)::before { content: "Estimado al cierre"; font-weight: 400; color: var(--bims-text-secondary); }
+}
+
 </style>
 </head>
 <body>
@@ -531,8 +646,12 @@ tr.sub:hover td { background: #eef2f5; }
 
   <!-- TOPBAR (shell fijo, no modificar) -->
   <header class="bims-topbar">
+    <!-- NUEVO: no validado contra prod — hamburguesa que despliega los módulos en mobile -->
+    <button class="bims-topbar__burger" id="burgerBtn" aria-label="Abrir menú" aria-expanded="false" aria-controls="topbarNav">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
     <div class="bims-topbar__logo">DEMO</div>
-    <nav class="bims-topbar__nav">
+    <nav class="bims-topbar__nav" id="topbarNav">
       <a href="#">Configuración</a><a href="#">Ventas</a><a href="#">Compras</a><a href="#">Stock</a>
       <a href="#">Producción</a><a href="#">Ganadería</a><a href="#">RRHH</a><a href="#">Bienes Raíces</a>
       <a href="#">Finanzas</a><a href="#">Contabilidad</a>
@@ -551,7 +670,7 @@ tr.sub:hover td { background: #eef2f5; }
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m15 9-4 2-2 4 4-2z" fill="#9aa0a6"/></svg>
       <svg width="20" height="20" viewBox="0 0 24 24" stroke="#9aa0a6" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
     </div>
-    <div class="bims-search">Buscar en BIMS
+    <div class="bims-search"><span class="bims-search__text">Buscar en BIMS</span>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b8bdc2" stroke-width="2.5"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></svg>
     </div>
   </div>
@@ -559,12 +678,28 @@ tr.sub:hover td { background: #eef2f5; }
   <main class="bims-main">
     <div class="bims-page-header bims-page-header--stack">
       <div class="bims-breadcrumb"><a href="#">Mi BIMS</a> / Suscripción</div>
-      <h1 class="bims-page-header__title">Suscripción · Plan Emprendedor</h1>
+      <!-- NUEVO: no validado contra prod — tag de estado de la suscripción -->
+      <div class="bims-page-header__title-row">
+        <h1 class="bims-page-header__title">Suscripción · Plan Emprendedor</h1>
+        <span class="bims-badge bims-badge--success" id="stateTag">Activo</span>
+      </div>
     </div>
 
+    <!-- NUEVO: no validado contra prod — stepper compacto, solo mobile -->
+    <div class="bims-mobile-stepper"><span class="bims-mobile-stepper__n">1</span>Paso 1 de 3 · Resumen de suscripción</div>
+
     <div class="bims-page-content">
-      <!-- B: destacado cálido (amarillo del número de comprobante de prod) -->
-      <div class="promo promo--b">
+      <!-- NUEVO: control exclusivo del prototipo — simula los distintos estados de la suscripción, no existe en prod -->
+      <div class="proto-state-selector">
+        <span>Simular estado (solo prototipo):</span>
+        <div class="bims-btn-group" role="group" aria-label="Estado de la suscripción">
+          <a href="?estado=activo" data-estado="activo">Activo</a>
+          <a href="?estado=por-vencer" data-estado="por-vencer">Por vencer</a>
+          <a href="?estado=vencido" data-estado="vencido">Vencido</a>
+        </div>
+      </div>
+      <!-- B: destacado cálido (amarillo del número de comprobante de prod) — oculto en Activo -->
+      <div class="promo promo--b" hidden>
         <span class="promo__icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>
         <div class="promo__text"><b>Ahorrá 20% en el plan con el ciclo de 180 días</b><span>Gs. 408.000 menos que pagando mes a mes.</span></div>
         <a href="#" id="openSim">Ver cuánto pagarías →</a>
@@ -572,8 +707,8 @@ tr.sub:hover td { background: #eef2f5; }
       <div class="kpis">
         <section class="bims-card kpi">
           <div class="kpi__label">A pagar hoy <span class="kpi__info" tabindex="0" data-tip="Monto total de tus consumos hasta hoy en este ciclo."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7.5v.5"/></svg></span></div>
-          <div class="kpi__value is-accent">Gs. 1.187.400</div>
-          <div class="kpi__note">Incluye adicionales agregados</div>
+          <div class="kpi__value is-accent">Gs. 1.527.400</div>
+          <div class="kpi__note">Incluye plan y adicionales agregados hasta hoy.</div>
         </section>
         <section class="bims-card kpi">
           <div class="kpi__label">Total estimado al 18-09-2026 <span class="kpi__info" tabindex="0" data-tip="Estimación de costos al finalizar los 30 o 180 días de tu ciclo."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7.5v.5"/></svg></span></div>
@@ -590,7 +725,7 @@ tr.sub:hover td { background: #eef2f5; }
           <table class="bims-table">
             <thead><tr><th class="left">Concepto</th><th class="num">Cantidad</th><th class="num">Tarifa diaria</th><th class="num">A pagar hoy</th><th class="num">Estimado al cierre</th></tr></thead>
             <tbody>
-              <tr data-plan><td><button class="row-toggle" title="Ver detalle"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3"><path d="M9 6l6 6-6 6"/></svg></button>Plan emprendedor 30 días</td><td class="num muted">-</td><td class="num muted">-</td><td class="num muted">-</td><td class="num"><b>Gs. 340.000</b></td></tr>
+              <tr data-plan><td><button class="row-toggle" title="Ver detalle"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3"><path d="M9 6l6 6-6 6"/></svg></button>Plan emprendedor 30 días</td><td class="num muted">-</td><td class="num muted">-</td><td class="num"><b>Gs. 340.000</b></td><td class="num"><b>Gs. 340.000</b></td></tr>
               <tr><td><button class="row-toggle" title="Ver detalle"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3"><path d="M9 6l6 6-6 6"/></svg></button>Facturación electrónica</td><td class="num">1</td><td class="num">Gs. 3.000</td><td class="num">Gs. 81.000</td><td class="num"><b>Gs. 90.000</b></td></tr>
               <tr class="sub" hidden><td>20-08-2026 – 18-09-2026 · 30 días</td><td class="num">1</td><td></td><td class="num">Gs. 81.000</td><td class="num">Gs. 90.000</td></tr>
               <tr><td><button class="row-toggle" title="Ver detalle"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3"><path d="M9 6l6 6-6 6"/></svg></button>Usuarios</td><td class="num">5</td><td class="num">Gs. 400</td><td class="num">Gs. 39.600</td><td class="num"><b>Gs. 45.600</b></td></tr>
@@ -609,7 +744,7 @@ tr.sub:hover td { background: #eef2f5; }
               <tr class="sub" hidden><td>20-08-2026 – 18-09-2026 · 30 días</td><td class="num">1</td><td></td><td class="num">Gs. 29.700</td><td class="num">Gs. 33.000</td></tr>
               <tr><td><button class="row-toggle" title="Ver detalle"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3"><path d="M9 6l6 6-6 6"/></svg></button>Cuentas de fondos</td><td class="num">1</td><td class="num">Gs. 400</td><td class="num">Gs. 10.800</td><td class="num"><b>Gs. 12.000</b></td></tr>
               <tr class="sub" hidden><td>20-08-2026 – 18-09-2026 · 30 días</td><td class="num">1</td><td></td><td class="num">Gs. 10.800</td><td class="num">Gs. 12.000</td></tr>
-              <tr class="is-total"><td style="text-align:left">Resumen de totales</td><td></td><td></td><td class="num accent">Gs. 1.187.400</td><td class="num">Gs. 1.666.000</td></tr>
+              <tr class="is-total"><td style="text-align:left">Resumen de totales</td><td></td><td></td><td class="num accent">Gs. 1.527.400</td><td class="num">Gs. 1.666.000</td></tr>
             </tbody>
           </table>
           </div>
@@ -617,7 +752,7 @@ tr.sub:hover td { background: #eef2f5; }
       </section>
 
       <div class="paybar">
-        <div><div class="paybar__label">Total a pagar</div><div class="paybar__value">Gs. 1.187.400</div></div>
+        <div><div class="paybar__label">Total a pagar</div><div class="paybar__value">Gs. 1.527.400</div></div>
         <a class="bims-btn bims-btn--success" href="pagar-suscripcion.html">Ir a pagar</a>
       </div>
     </div>
@@ -676,6 +811,95 @@ tr.sub:hover td { background: #eef2f5; }
   sim.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSim));
   sim.addEventListener('click', e => { if (e.target === sim) closeSim(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sim.hidden) closeSim(); });
+
+  // ---- Menú de módulos en mobile (hamburguesa) ----
+  (function () {
+    const burger = document.getElementById('burgerBtn');
+    const nav = document.getElementById('topbarNav');
+    if (!burger || !nav) return;
+    const setOpen = open => { nav.classList.toggle('is-open', open); burger.setAttribute('aria-expanded', open); };
+    burger.addEventListener('click', () => setOpen(!nav.classList.contains('is-open')));
+    nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setOpen(false)));
+    document.addEventListener('click', e => {
+      if (nav.classList.contains('is-open') && !nav.contains(e.target) && !burger.contains(e.target)) setOpen(false);
+    });
+  })();
+
+  // =========================================================
+  // NUEVO: Estados de la suscripción (no existe en prod tal cual)
+  // El estado se pasa entre pantallas con ?estado=activo|por-vencer|vencido
+  // "en-revision" es un 4to estado, solo alcanzable vía el flujo de pago
+  // (Vencido + comprobante de transferencia) — no está en el selector del proto.
+  // Comprobante rechazado: NO implementado, estado a definir con negocio.
+  // =========================================================
+  const ESTADOS = {
+    'activo':      { label: 'Activo',      badge: 'success' },
+    'por-vencer':  { label: 'Por vencer',  badge: 'warning' },
+    'vencido':     { label: 'Vencido',     badge: 'danger'  },
+    'en-revision': { label: 'En revisión', badge: 'warning', dot: true },
+  };
+  function getEstado() {
+    const p = new URLSearchParams(location.search).get('estado');
+    return ESTADOS[p] ? p : 'activo';
+  }
+  function fmtGs(n) { return 'Gs. ' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  function parseGs(s) { return Number(String(s).replace(/[^\d]/g, '')) || 0; }
+
+  (function aplicarEstado() {
+    const estado = getEstado();
+    const cfg = ESTADOS[estado];
+    // Los montos quedan congelados (ya no crecen) en Vencido y en En revisión (que nace de un Vencido)
+    const congelado = estado === 'vencido' || estado === 'en-revision';
+
+    // Tag junto al título
+    const tag = document.getElementById('stateTag');
+    tag.className = 'bims-badge bims-badge--' + cfg.badge + (cfg.dot ? ' bims-badge--dot' : '');
+    tag.innerHTML = (cfg.dot ? '<span class="bims-badge__dot"></span>' : '') + cfg.label;
+
+    // Selector del proto: marca el botón activo
+    document.querySelectorAll('.proto-state-selector [data-estado]').forEach(a => {
+      a.classList.toggle('is-active', a.dataset.estado === estado);
+    });
+    // El estado viaja a la pantalla de pago
+    document.querySelectorAll('a[href^="pagar-suscripcion.html"]').forEach(a => {
+      a.href = 'pagar-suscripcion.html?estado=' + estado;
+    });
+
+    // Promo de 180 días: oculta solo en Activo
+    document.querySelector('.promo--b').hidden = estado === 'activo';
+
+    // Regla de cobro nueva: el plan ya no queda en "Gs. 0 hoy", siempre se paga hoy
+    // (el HTML ya viene así por defecto; esto es defensivo si se edita el default a futuro)
+    const planRow = document.querySelector('tr[data-plan]');
+    planRow.children[3].innerHTML = planRow.children[4].innerHTML;
+    planRow.children[3].classList.remove('muted');
+
+    // Vencido / En revisión: los adicionales dejan de crecer → "a pagar" = "estimado al cierre"
+    document.querySelectorAll('.cons tbody tr:not([data-plan]):not(.is-total):not(.detail)').forEach(row => {
+      if (congelado) row.children[3].innerHTML = row.children[4].innerHTML;
+    });
+
+    // Recalcula el total de "a pagar" a partir de las filas de concepto (no las de detalle "sub")
+    let totalHoy = 0;
+    document.querySelectorAll('.cons tbody tr:not(.sub):not(.detail):not(.is-total)').forEach(row => {
+      totalHoy += parseGs(row.children[3].textContent);
+    });
+    document.querySelector('.cons tbody tr.is-total').children[3].textContent = fmtGs(totalHoy);
+
+    // KPIs y barra de pago: mismo total que la tabla
+    const kpis = document.querySelectorAll('.kpis .kpi');
+    const kpi1Label = kpis[0].querySelector('.kpi__label');
+    kpi1Label.firstChild.textContent = (congelado ? 'A pagar ' : 'A pagar hoy ');
+    kpis[0].querySelector('.kpi__value').textContent = fmtGs(totalHoy);
+    kpis[0].querySelector('.kpi__note').textContent = congelado
+      ? 'Incluye plan y adicionales, congelados desde el vencimiento (18-09-2026).'
+      : 'Incluye plan y adicionales agregados hasta hoy.';
+    if (congelado) {
+      kpis[1].querySelector('.kpi__label').firstChild.textContent = 'Total del ciclo (venció el 18-09-2026) ';
+      kpis[1].querySelector('.kpi__note').textContent = 'Dejó de sumar en la fecha de vencimiento.';
+    }
+    document.querySelector('.paybar__value').textContent = fmtGs(totalHoy);
+  })();
 </script>
 </body>
 </html>

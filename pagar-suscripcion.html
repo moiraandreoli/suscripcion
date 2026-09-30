@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pagar suscripción · BIMS</title>
 <style>
 /* =========================================================
@@ -435,6 +436,18 @@ select.bims-input { box-shadow: var(--shadow-field); }
 
 /* NUEVO: variante verde del badge (colores de .alert-success de Bootstrap 3) */
 .bims-badge--success { background: #dff0d8; color: #3c763d; }
+/* NUEVO: variantes de color del tag de estado de suscripción (reutiliza colores ya validados: promo--b/sim-tag para amarillo, bims-alert-danger para rojo) */
+.bims-badge--warning { background: #f5e3a3; color: #8a6d1c; }
+.bims-badge--danger { background: #f2dede; color: #a94442; }
+.bims-badge--dot { display: inline-flex; align-items: center; gap: 5px; }
+.bims-badge__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: bims-blink 1.4s ease-in-out infinite; }
+@keyframes bims-blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+/* NUEVO: fila título + tag de estado */
+.bims-page-header__title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* NUEVO: opción no interactiva (vista informativa del plan, sin radio) */
+.bims-option--static { cursor: default; }
+/* NUEVO: la vista informativa del plan tiene una sola tarjeta — sin esto quedaría a media anchura en la grilla de 2 columnas */
+#planInfo { grid-template-columns: 1fr; }
 
 /* Resumen como tabla de totales de prod */
 .pay-summary td { white-space: normal; }
@@ -514,6 +527,62 @@ select.bims-input { box-shadow: var(--shadow-field); }
 .done-actions .bims-btn { width: 100%; }
 @keyframes bims-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 
+/* =========================================================
+   Responsive (agregado) — breakpoints Bootstrap 3
+   <768px mobile · 768–991px tablet (= desktop, sin cambios) · ≥992px desktop
+   El desktop no se modifica: los estilos de abajo solo actúan dentro de @media.
+   ========================================================= */
+
+/* NUEVO: no validado contra prod — botón hamburguesa del topbar (oculto salvo en mobile) */
+.bims-topbar__burger { display: none; width: 40px; flex-shrink: 0; align-items: center; justify-content: center; border: 0; background: none; padding: 0; cursor: pointer; }
+/* NUEVO: no validado contra prod — texto del buscador (para poder ocultarlo en mobile) */
+.bims-search__text { white-space: nowrap; }
+/* NUEVO: no validado contra prod — stepper compacto de mobile (oculto salvo en mobile) */
+.bims-mobile-stepper { display: none; }
+/* NUEVO: no validado contra prod — aviso de foto/galería, solo mobile */
+.mobile-photo-hint { display: none; }
+
+@media (max-width: 767px) {
+  /* ---- Topbar: hamburguesa en vez de los módulos ---- */
+  .bims-topbar__burger { display: flex; }
+  .bims-topbar__logo { width: auto; padding: 0 14px; }
+  .bims-topbar__nav {
+    display: none; flex-direction: column; align-items: stretch; gap: 0;
+    position: fixed; top: calc(var(--topbar-h) + var(--subbar-h)); left: 0; right: 0; z-index: 50;
+    padding: 6px 0; background: var(--bims-navy); box-shadow: 0 8px 16px rgba(0,0,0,.2);
+  }
+  .bims-topbar__nav.is-open { display: flex; }
+  .bims-topbar__nav a { padding: 12px var(--gutter); border-bottom: 1px solid rgba(255,255,255,.1); }
+  .bims-topbar__nav a::after { display: none; }
+  .bims-topbar__right { gap: 16px; }
+
+  /* ---- Subbar: ocultar el buscador, dejar solo el ícono ---- */
+  .bims-search { width: 34px; padding: 0; justify-content: center; margin-right: var(--gutter); }
+  .bims-search__text { display: none; }
+
+  /* ---- Stepper compacto ---- */
+  .bims-mobile-stepper {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px var(--gutter);
+    background: #fff; border-bottom: 1px solid var(--bims-border);
+    font-size: var(--fs-sm); color: var(--bims-text-secondary);
+  }
+  .bims-mobile-stepper__n {
+    width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bims-link); color: #fff; font-size: 11px;
+    font-family: var(--bims-font-bold); font-weight: 700;
+  }
+
+  /* ---- Grillas de 2 columnas → 1 columna ---- */
+  .bims-option-grid { grid-template-columns: 1fr; gap: 10px; }
+  .done-actions { grid-template-columns: 1fr; }
+  .bims-card__section { padding: 15px; }
+
+  /* ---- Comprobante: aviso de que se puede sacar/elegir una foto ---- */
+  .mobile-photo-hint { display: block; margin-top: 8px; }
+}
+
 </style>
 </head>
 <body>
@@ -521,8 +590,12 @@ select.bims-input { box-shadow: var(--shadow-field); }
 
   <!-- TOPBAR (shell fijo, no modificar) -->
   <header class="bims-topbar">
+    <!-- NUEVO: no validado contra prod — hamburguesa que despliega los módulos en mobile -->
+    <button class="bims-topbar__burger" id="burgerBtn" aria-label="Abrir menú" aria-expanded="false" aria-controls="topbarNav">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
     <div class="bims-topbar__logo">DEMO</div>
-    <nav class="bims-topbar__nav">
+    <nav class="bims-topbar__nav" id="topbarNav">
       <a href="#">Configuración</a><a href="#">Ventas</a><a href="#">Compras</a><a href="#">Stock</a>
       <a href="#">Producción</a><a href="#">Ganadería</a><a href="#">RRHH</a><a href="#">Bienes Raíces</a>
       <a href="#">Finanzas</a><a href="#">Contabilidad</a>
@@ -541,16 +614,23 @@ select.bims-input { box-shadow: var(--shadow-field); }
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m15 9-4 2-2 4 4-2z" fill="#9aa0a6"/></svg>
       <svg width="20" height="20" viewBox="0 0 24 24" stroke="#9aa0a6" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
     </div>
-    <div class="bims-search">Buscar en BIMS
+    <div class="bims-search"><span class="bims-search__text">Buscar en BIMS</span>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b8bdc2" stroke-width="2.5"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></svg>
     </div>
   </div>
 
   <main class="bims-main">
     <div class="bims-page-header bims-page-header--stack">
-      <div class="bims-breadcrumb"><a href="#">Mi BIMS</a> / <a href="index.html">Suscripción</a> / Pagar suscripción</div>
-      <h1 class="bims-page-header__title">Pagar suscripción</h1>
+      <div class="bims-breadcrumb"><a href="#">Mi BIMS</a> / <a href="index.html" id="breadcrumbBack">Suscripción</a> / Pagar suscripción</div>
+      <!-- NUEVO: no validado contra prod — tag de estado de la suscripción -->
+      <div class="bims-page-header__title-row">
+        <h1 class="bims-page-header__title">Pagar suscripción</h1>
+        <span class="bims-badge bims-badge--success" id="stateTag">Activo</span>
+      </div>
     </div>
+
+    <!-- NUEVO: no validado contra prod — stepper compacto, solo mobile -->
+    <div class="bims-mobile-stepper" id="mobileStepper"><span class="bims-mobile-stepper__n">2</span><span id="mobileStepperText">Paso 2 de 3 · Plan y método de pago</span></div>
 
     <div class="bims-page-content">
       <div class="pay-wrap" id="payFlow">
@@ -558,16 +638,27 @@ select.bims-input { box-shadow: var(--shadow-field); }
 
         <section class="bims-card">
           <div class="bims-card__section">
-            <h2 class="bims-panel-title">1. Seleccioná un plan</h2>
-            <div class="bims-option-grid">
-              <label class="bims-option"><input type="radio" name="plan">
+            <h2 class="bims-panel-title" id="planTitle">1. Tu plan</h2>
+            <!-- NUEVO: no validado contra prod — en Activo/Por vencer/En revisión el plan es informativo (se renueva el mismo ciclo, sin elegir) -->
+            <div class="bims-option-grid" id="planInfo">
+              <div class="bims-option bims-option--static is-selected">
+                <div>
+                  <div class="bims-option__title">Plan Mensual</div>
+                  <div class="bims-option__sub">Renovación de tu ciclo actual · 30 días</div>
+                  <div class="bims-option__price">Gs. 340.000</div>
+                </div>
+              </div>
+            </div>
+            <!-- Selector real: solo en Vencido, donde se puede elegir entre 30 y 180 días -->
+            <div class="bims-option-grid" id="planPicker" hidden>
+              <label class="bims-option is-selected"><input type="radio" name="plan" value="mensual" data-price="340000" data-label="Plan Mensual" checked>
                 <div>
                   <div class="bims-option__title">Plan Mensual</div>
                   <div class="bims-option__sub">Suscripción por 30 días</div>
                   <div class="bims-option__price">Gs. 340.000</div>
                 </div>
               </label>
-              <label class="bims-option is-selected"><input type="radio" name="plan" checked>
+              <label class="bims-option"><input type="radio" name="plan" value="semestral" data-price="1632000" data-label="Plan Semestral (6 meses, 20% off)">
                 <div>
                   <div class="bims-option__title">Plan Semestral</div>
                   <div class="bims-option__sub">Suscripción por 6 meses</div>
@@ -583,11 +674,13 @@ select.bims-input { box-shadow: var(--shadow-field); }
             <h2 class="bims-panel-title">Resumen de pago</h2>
             <table class="bims-table pay-summary">
               <tbody>
-                <tr><td>Adicionales agregados hasta hoy</td><td class="num">Gs. 2.450.000</td></tr>
-                <tr><td>Plan semestral (6 meses, 20% off)</td><td class="num">Gs. 1.632.000</td></tr>
-                <tr class="is-total"><td style="text-align:left">Total a pagar<span class="hint">IVA incluido</span></td><td class="num">Gs. 4.082.000</td></tr>
+                <tr><td id="resumenAdicionalesLabel">Adicionales hasta hoy</td><td class="num" id="resumenAdicionales">Gs. 1.187.400</td></tr>
+                <tr><td id="resumenPlanLabel">Plan Mensual</td><td class="num" id="resumenPlan">Gs. 340.000</td></tr>
+                <tr class="is-total"><td style="text-align:left">Total a pagar<span class="hint">IVA incluido</span></td><td class="num" id="resumenTotal">Gs. 1.527.400</td></tr>
               </tbody>
             </table>
+            <!-- NUEVO: no validado contra prod — aclara qué días de adicionales quedan fuera de este pago (ciclos: plan prepago, adicionales pospago) -->
+            <p class="pay-lead" id="resumenNotaProximaFactura" style="margin-top:10px" hidden></p>
           </div>
         </section>
 
@@ -617,7 +710,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
                 <tr><td>Identificación / RUC</td><td class="val">80105432-1<button class="bims-copy" title="Copiar" data-copy="80105432-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button></td></tr>
                 <tr><td>Tipo de cuenta</td><td class="val">Cuenta corriente Gs.</td></tr>
                 <tr><td>Nro. de cuenta</td><td class="val">15-406229-0<button class="bims-copy" title="Copiar" data-copy="15-406229-0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button></td></tr>
-                <tr><td>Importe a pagar</td><td class="val">Gs. 4.082.000<button class="bims-copy" title="Copiar" data-copy="4082000"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button></td></tr>
+                <tr><td>Importe a pagar</td><td class="val"><span id="transferImporte">Gs. 1.527.400</span><button class="bims-copy" title="Copiar" id="transferCopyBtn" data-copy="1527400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button></td></tr>
               </tbody>
             </table>
 
@@ -626,6 +719,8 @@ select.bims-input { box-shadow: var(--shadow-field); }
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--bims-link)" stroke-width="1.8"><path d="M7 18a4.5 4.5 0 0 1-.5-9A6 6 0 0 1 18 8.5a4 4 0 0 1-1 9.5"/><path d="M12 12v8M9 15l3-3 3 3"/></svg>
               <div class="bims-dropzone__title">Subí tu comprobante en PDF o PNG</div>
               <div class="bims-dropzone__hint">Arrastralo acá o hacé clic para buscarlo · Máx. 5MB</div>
+              <!-- NUEVO: no validado contra prod — aviso de foto/galería, solo mobile -->
+              <div class="bims-dropzone__hint mobile-photo-hint">También podés sacar una foto o elegirla de tu galería</div>
             </label>
             <div class="bims-alert-danger" id="uploadError" hidden></div>
 
@@ -653,6 +748,17 @@ select.bims-input { box-shadow: var(--shadow-field); }
             </div>
           </div>
         </section>
+
+        <!-- NUEVO: no validado contra prod — pago con tarjeta, no existía en el proto. Se simplifica a un botón de pago (sin campos de tarjeta) -->
+        <section class="bims-card" id="tarjeta" hidden>
+          <div class="bims-card__section">
+            <h2 class="bims-panel-title">Pago con tarjeta</h2>
+            <p class="pay-lead">Se va a debitar <b id="tarjetaImporte">Gs. 1.527.400</b> de tu tarjeta guardada.</p>
+            <div class="pay-actions" style="justify-content:flex-start">
+              <button class="bims-btn bims-btn--success" id="payCard">Pagar <span id="payCardMonto">Gs. 1.527.400</span> con tarjeta</button>
+            </div>
+          </div>
+        </section>
       </div>
 
       <div class="done-wrap" id="done" hidden>
@@ -661,43 +767,175 @@ select.bims-input { box-shadow: var(--shadow-field); }
             <div class="done-head">
               <div class="done-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3c763d" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></div>
               <div>
-                <h2 class="done-title">Comprobante recibido</h2>
-                <p class="done-sub">Lo revisaremos en un plazo de hasta 48 horas hábiles. Mientras tanto, podés seguir usando BIMS.</p>
+                <h2 class="done-title" id="doneTitle">Comprobante recibido</h2>
+                <p class="done-sub" id="doneSub">Lo revisaremos en un plazo de hasta 48 horas hábiles. Mientras tanto, podés seguir usando BIMS.</p>
               </div>
             </div>
             <table class="bims-table done-data">
               <tbody>
-                <tr><td>Plan</td><td class="val">Plan Semestral (6 meses)</td></tr>
-                <tr><td>Método de pago</td><td class="val">Transferencia bancaria</td></tr>
-                <tr><td>Comprobante</td><td class="val" id="doneFile">comprobante.pdf</td></tr>
+                <tr><td>Plan</td><td class="val" id="donePlan">Plan Mensual</td></tr>
+                <!-- NUEVO: no validado contra prod — fin del ciclo siguiente (no hoy + 30 días). Se oculta cuando el pago parte de una cuenta Vencida: el inicio del ciclo nuevo en ese caso está a definir -->
+                <tr id="doneProximoRow"><td>Próximo vencimiento</td><td class="val" id="doneProximo"></td></tr>
+                <tr><td>Método de pago</td><td class="val" id="doneMetodo">Transferencia bancaria</td></tr>
+                <tr id="doneFileRow"><td>Comprobante</td><td class="val" id="doneFile">comprobante.pdf</td></tr>
                 <tr><td>Fecha de envío</td><td class="val" id="doneDate"></td></tr>
-                <tr class="is-total"><td style="text-align:left">Monto a validar</td><td class="num">Gs. 4.082.000</td></tr>
+                <tr class="is-total"><td style="text-align:left" id="doneMontoLabel">Monto a validar</td><td class="num" id="doneMonto">Gs. 1.527.400</td></tr>
               </tbody>
             </table>
             <div class="done-actions">
-              <button class="bims-btn bims-btn--default">Ver estado de cuenta</button>
-              <button class="bims-btn bims-btn--primary">Ir al inicio</button>
+              <button class="bims-btn bims-btn--default" id="doneVerCuenta">Ver estado de cuenta</button>
+              <button class="bims-btn bims-btn--primary" id="doneIrInicio">Ir al inicio</button>
             </div>
           </div>
         </section>
-        <p class="bims-dropzone__hint" style="text-align:center;margin-top:10px">Proto: <a href="#" id="restart">volver al paso anterior</a></p>
+        <p class="bims-dropzone__hint" style="text-align:center;margin-top:10px" id="doneRestartWrap">Proto: <a href="#" id="restart">volver al paso anterior</a></p>
       </div>
     </div>
   </main>
 </div>
 <script>
+  // =========================================================
+  // NUEVO: Estados de la suscripción y regla de cobro nueva
+  // (mismo modelo que suscripcion-resumen.html — ver el comentario allí)
+  // Comprobante rechazado: NO implementado, estado a definir con negocio.
+  // =========================================================
+  const ESTADOS = {
+    'activo':      { label: 'Activo',      badge: 'success' },
+    'por-vencer':  { label: 'Por vencer',  badge: 'warning' },
+    'vencido':     { label: 'Vencido',     badge: 'danger'  },
+    'en-revision': { label: 'En revisión', badge: 'warning', dot: true },
+  };
+  function getEstado() {
+    const p = new URLSearchParams(location.search).get('estado');
+    return ESTADOS[p] ? p : 'activo';
+  }
+  function fmtGs(n) { return 'Gs. ' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+  const ESTADO_ORIGEN = getEstado();
+  const CONGELADO = ESTADO_ORIGEN === 'vencido' || ESTADO_ORIGEN === 'en-revision';
+  const FECHA_VENCIMIENTO = '18-09-2026';
+  const ADICIONALES = CONGELADO ? 1326000 : 1187400; // hasta el vencimiento vs. hasta hoy
+  // 3/5: Vencido y Por vencer permiten elegir 30/180 días; en Activo y En revisión el plan es informativo
+  const PUEDE_ELEGIR_PLAN = ESTADO_ORIGEN === 'vencido' || ESTADO_ORIGEN === 'por-vencer';
+  let ESTADO_DESTINO = ESTADO_ORIGEN; // a dónde navegan "Ir al inicio" / "Ver estado de cuenta"
+
+  // =========================================================
+  // NUEVO: 5. Ciclos — el plan es prepago (se paga el ciclo SIGUIENTE, no el actual)
+  // y los adicionales son pospago (se cobran hasta la fecha de pago; lo que falta
+  // hasta el vencimiento pasa a la próxima factura).
+  // Fechas fijas de este dataset de ejemplo: ciclo actual 20-08-2026 al 18-09-2026
+  // (vencimiento), hoy = 15-09-2026, plan mensual = 30 días, semestral = 180 días.
+  // PENDIENTE: si el pago se hace con la cuenta Vencida, el inicio del ciclo nuevo
+  // queda a definir con negocio — no se calcula (ver CLAUDE.md).
+  // =========================================================
+  const CICLO_ACTUAL_INICIO = '20-08-2026';
+  const FECHA_HOY = '15-09-2026';
+  const CICLO_NUEVO_INICIO = '19-09-2026'; // = vencimiento + 1 día
+  const CICLO_NUEVO_FIN = { mensual: '18-10-2026', semestral: '17-03-2027' };
+  const PUEDE_CALCULAR_CICLO_NUEVO = !CONGELADO; // false en Vencido/En revisión: fecha de inicio a definir
+  const DIAS_RESTO_INICIO = '16-09-2026', DIAS_RESTO_FIN = FECHA_VENCIMIENTO; // hoy+1 .. vencimiento
+
+  // Tag junto al título
+  (function () {
+    const cfg = ESTADOS[ESTADO_ORIGEN];
+    const tag = document.getElementById('stateTag');
+    tag.className = 'bims-badge bims-badge--' + cfg.badge + (cfg.dot ? ' bims-badge--dot' : '');
+    tag.innerHTML = (cfg.dot ? '<span class="bims-badge__dot"></span>' : '') + cfg.label;
+  })();
+  // El breadcrumb vuelve al resumen con el mismo estado
+  document.getElementById('breadcrumbBack').href = 'index.html?estado=' + ESTADO_ORIGEN;
+
+  // ---- 1. Plan: informativo salvo en Por vencer/Vencido (ahí se puede elegir 30 o 180 días) ----
+  const planTitle = document.getElementById('planTitle');
+  const planInfo = document.getElementById('planInfo');
+  const planPicker = document.getElementById('planPicker');
+  planTitle.textContent = PUEDE_ELEGIR_PLAN ? '1. Seleccioná un plan' : '1. Tu plan';
+  planInfo.hidden = PUEDE_ELEGIR_PLAN;
+  planPicker.hidden = !PUEDE_ELEGIR_PLAN;
+
+  function planSeleccionado() {
+    if (!PUEDE_ELEGIR_PLAN) return { price: 340000, label: 'Plan Mensual', key: 'mensual' };
+    const checked = document.querySelector('input[name="plan"]:checked');
+    return { price: Number(checked.dataset.price), label: checked.dataset.label, key: checked.value };
+  }
+
+  // ---- Resumen de pago: se recalcula con el plan elegido y el estado de la suscripción ----
+  // Los montos coinciden entre: paneles/barra del paso 1 (suscripcion-resumen.html), este resumen,
+  // el importe de transferencia (y su valor para copiar), el botón de tarjeta y la confirmación.
+  const resumenAdicionalesLabel = document.getElementById('resumenAdicionalesLabel');
+  const resumenAdicionales = document.getElementById('resumenAdicionales');
+  const resumenPlanLabel = document.getElementById('resumenPlanLabel');
+  const resumenPlan = document.getElementById('resumenPlan');
+  const resumenTotal = document.getElementById('resumenTotal');
+  const resumenNota = document.getElementById('resumenNotaProximaFactura');
+  const transferImporte = document.getElementById('transferImporte');
+  const transferCopyBtn = document.getElementById('transferCopyBtn');
+  const tarjetaImporte = document.getElementById('tarjetaImporte');
+  const payCardMonto = document.getElementById('payCardMonto');
+
+  function proximoVencimiento(key) { return PUEDE_CALCULAR_CICLO_NUEVO ? CICLO_NUEVO_FIN[key] : null; }
+
+  let TOTAL = 0;
+  function recomputeResumen() {
+    const plan = planSeleccionado();
+    TOTAL = plan.price + ADICIONALES;
+
+    // Adicionales: período siempre conocido (hasta hoy, o congelado hasta el vencimiento)
+    const adicionalesDesde = CICLO_ACTUAL_INICIO;
+    const adicionalesHasta = CONGELADO ? FECHA_VENCIMIENTO : FECHA_HOY;
+    resumenAdicionalesLabel.innerHTML = (CONGELADO
+      ? `Adicionales hasta el ${FECHA_VENCIMIENTO}, fecha de vencimiento`
+      : 'Adicionales hasta hoy') + `<span class="hint">del ${adicionalesDesde} al ${adicionalesHasta}</span>`;
+    resumenAdicionales.textContent = fmtGs(ADICIONALES);
+
+    // Plan: rige desde el ciclo siguiente (prepago) — fecha a definir si se paga con la cuenta Vencida
+    const finNuevoCiclo = proximoVencimiento(plan.key);
+    resumenPlanLabel.innerHTML = plan.label + (finNuevoCiclo
+      ? `<span class="hint">del ${CICLO_NUEVO_INICIO} al ${finNuevoCiclo}</span>`
+      : '<span class="hint">Fecha de inicio del ciclo nuevo a definir</span>');
+    resumenPlan.textContent = fmtGs(plan.price);
+
+    resumenTotal.textContent = fmtGs(TOTAL);
+    transferImporte.textContent = fmtGs(TOTAL);
+    transferCopyBtn.dataset.copy = String(TOTAL);
+    tarjetaImporte.textContent = fmtGs(TOTAL);
+    payCardMonto.textContent = fmtGs(TOTAL);
+
+    // Nota: los días entre el pago y el vencimiento pasan a la próxima factura
+    if (PUEDE_CALCULAR_CICLO_NUEVO) {
+      resumenNota.hidden = false;
+      resumenNota.textContent = `Los adicionales del ${DIAS_RESTO_INICIO} al ${DIAS_RESTO_FIN} se suman a tu próxima factura.`;
+    } else {
+      resumenNota.hidden = true;
+    }
+  }
+  recomputeResumen();
+  if (PUEDE_ELEGIR_PLAN) {
+    document.querySelectorAll('input[name="plan"]').forEach(r => r.addEventListener('change', recomputeResumen));
+  }
+
   // Selección visual de opciones
   document.querySelectorAll('.bims-option input').forEach(r => r.addEventListener('change', () => {
     document.querySelectorAll(`.bims-option input[name="${r.name}"]`).forEach(o => o.closest('.bims-option').classList.toggle('is-selected', o.checked));
   }));
-  // Mostrar instrucciones solo con transferencia
-  const tr = document.getElementById('transferencia');
+
+  // ---- 2. Método de pago: transferencia o tarjeta ----
+  const trSection = document.getElementById('transferencia');
+  const tarjetaSection = document.getElementById('tarjeta');
   const metodos = [...document.querySelectorAll('input[name="metodo"]')];
+  const stepperText = document.getElementById('mobileStepperText');
   const syncMetodo = () => {
-    const show = metodos[0].checked;
-    const wasHidden = tr.hidden;
-    tr.hidden = !show; tr.style.display = show ? '' : 'none';
-    if (show && wasHidden) setTimeout(() => tr.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    const showTransfer = metodos[0].checked, showTarjeta = metodos[1].checked;
+    const wasTrHidden = trSection.hidden, wasTarjetaHidden = tarjetaSection.hidden;
+    trSection.hidden = !showTransfer; trSection.style.display = showTransfer ? '' : 'none';
+    tarjetaSection.hidden = !showTarjeta;
+    if (showTransfer && wasTrHidden) setTimeout(() => trSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    if (showTarjeta && wasTarjetaHidden) setTimeout(() => tarjetaSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    if (stepperText) {
+      stepperText.textContent = showTransfer ? 'Paso 3 de 3 · Comprobante de pago'
+        : showTarjeta ? 'Paso 3 de 3 · Pago con tarjeta'
+        : 'Paso 2 de 3 · Plan y método de pago';
+    }
   };
   metodos.forEach(r => { r.addEventListener('change', syncMetodo); r.addEventListener('click', syncMetodo); });
   syncMetodo();
@@ -715,6 +953,12 @@ select.bims-input { box-shadow: var(--shadow-field); }
   let timer;
   const fmt = b => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
 
+  // NUEVO: en mobile el comprobante también se puede sacar como foto o elegir de la galería
+  const mobileQuery = window.matchMedia('(max-width: 767px)');
+  const syncAccept = () => { input.accept = mobileQuery.matches ? '.pdf,.png,.jpg,.jpeg,image/*' : '.pdf,.png'; };
+  syncAccept();
+  mobileQuery.addEventListener('change', syncAccept);
+
   function showError(msg) {
     err.textContent = msg; err.hidden = false;
     drop.classList.remove('is-error'); void drop.offsetWidth; drop.classList.add('is-error');
@@ -722,7 +966,8 @@ select.bims-input { box-shadow: var(--shadow-field); }
   function handle(file) {
     err.hidden = true; drop.classList.remove('is-error');
     const ext = file.name.split('.').pop().toLowerCase();
-    if (!['pdf', 'png'].includes(ext)) return showError('Subí el comprobante en formato PDF o PNG.');
+    const allowed = mobileQuery.matches ? ['pdf', 'png', 'jpg', 'jpeg'] : ['pdf', 'png'];
+    if (!allowed.includes(ext)) return showError(mobileQuery.matches ? 'Subí el comprobante en PDF, PNG o una foto (JPG).' : 'Subí el comprobante en formato PDF o PNG.');
     if (file.size > MAX) return showError('El archivo pesa ' + fmt(file.size) + '. Subí uno de hasta 5MB.');
     drop.hidden = true; up.hidden = false; up.classList.remove('is-done');
     document.getElementById('upName').textContent = file.name;
@@ -749,23 +994,109 @@ select.bims-input { box-shadow: var(--shadow-field); }
   document.getElementById('demoOk').addEventListener('click', e => { e.preventDefault(); handle({ name: 'comprobante-transferencia-sudameris.pdf', size: 1340000 }); });
   document.getElementById('demoErr').addEventListener('click', e => { e.preventDefault(); handle({ name: 'captura.png', size: 7900000 }); });
 
-  // ---- Enviar → confirmación ----
+  // ---- Confirmación genérica (transferencia o tarjeta) ----
+  const doneWrap = document.getElementById('done');
+  const doneTitle = document.getElementById('doneTitle');
+  const doneSub = document.getElementById('doneSub');
+  const donePlan = document.getElementById('donePlan');
+  const doneMetodo = document.getElementById('doneMetodo');
+  const doneFileRow = document.getElementById('doneFileRow');
+  const doneDate = document.getElementById('doneDate');
+  const doneMontoLabel = document.getElementById('doneMontoLabel');
+  const doneMonto = document.getElementById('doneMonto');
+  const doneRestartWrap = document.getElementById('doneRestartWrap');
+  const doneProximoRow = document.getElementById('doneProximoRow');
+  const doneProximo = document.getElementById('doneProximo');
+
+  function fechaHoraActual() {
+    const d = new Date(), pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())} hs`;
+  }
+
+  function mostrarDone(tipo) {
+    const plan = planSeleccionado();
+    donePlan.textContent = plan.label;
+    doneDate.textContent = fechaHoraActual();
+    doneMonto.textContent = fmtGs(TOTAL);
+    // 4: "Próximo vencimiento" = fin del ciclo siguiente, no hoy + 30 días.
+    // Se oculta si el pago parte de una cuenta Vencida (fecha de inicio a definir).
+    const finNuevoCiclo = proximoVencimiento(plan.key);
+    doneProximoRow.hidden = !finNuevoCiclo;
+    if (finNuevoCiclo) doneProximo.textContent = finNuevoCiclo;
+    if (tipo === 'transferencia') {
+      doneTitle.textContent = 'Comprobante recibido';
+      doneMetodo.textContent = 'Transferencia bancaria';
+      doneFileRow.hidden = false;
+      document.getElementById('doneFile').textContent = document.getElementById('upName').textContent;
+      doneMontoLabel.textContent = 'Monto a validar';
+      doneRestartWrap.hidden = false;
+      if (ESTADO_ORIGEN === 'vencido') {
+        // Vencido + comprobante de transferencia → En revisión (la cuenta no se bloquea)
+        ESTADO_DESTINO = 'en-revision';
+        doneSub.innerHTML = 'Tu cuenta pasa a <b>En revisión</b> mientras Operaciones valida el pago — mientras tanto no se bloquea tu acceso a BIMS.';
+      } else {
+        // Activo/Por vencer + comprobante → el tag no cambia; la confirmación aclara "Pago en revisión"
+        ESTADO_DESTINO = ESTADO_ORIGEN;
+        doneSub.innerHTML = '<b>Pago en revisión</b>: lo validaremos en un plazo de hasta 48 horas hábiles. Mientras tanto, podés seguir usando BIMS con normalidad.';
+      }
+    } else {
+      // Por vencer o Vencido (o Activo) + pago con tarjeta → Activo (ciclo nuevo)
+      ESTADO_DESTINO = 'activo';
+      doneTitle.textContent = '¡Pago realizado!';
+      doneSub.textContent = 'Tu suscripción ya está activa. El comprobante de pago llega por correo.';
+      doneMetodo.textContent = 'Tarjeta de crédito/débito';
+      doneFileRow.hidden = true;
+      doneMontoLabel.textContent = 'Monto pagado';
+      doneRestartWrap.hidden = true;
+    }
+    document.getElementById('payFlow').hidden = true;
+    doneWrap.hidden = false;
+    document.getElementById('mobileStepper').hidden = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ---- Enviar comprobante → confirmación ----
   send.addEventListener('click', () => {
     if (send.disabled) return;
     send.disabled = true; send.innerHTML = '<span class="bims-spinner" style="border-color:rgba(255,255,255,.4);border-top-color:#fff;margin-right:8px"></span>Enviando…';
     setTimeout(() => {
-      const d = new Date(), pad = n => String(n).padStart(2, '0');
-      document.getElementById('doneDate').textContent = `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())} hs`;
-      document.getElementById('doneFile').textContent = document.getElementById('upName').textContent;
-      document.getElementById('payFlow').hidden = true;
-      document.getElementById('done').hidden = false;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      mostrarDone('transferencia');
       send.textContent = 'Enviar comprobante'; send.disabled = false;
     }, 1100);
   });
-  document.getElementById('restart').addEventListener('click', e => {
-    e.preventDefault(); document.getElementById('done').hidden = true; document.getElementById('payFlow').hidden = false;
+
+  // ---- Pagar con tarjeta → confirmación ----
+  // NUEVO: no existe en prod. Se simplifica a un botón de pago (sin campos de tarjeta) para el prototipo.
+  document.getElementById('payCard').addEventListener('click', () => {
+    const btn = document.getElementById('payCard');
+    if (btn.disabled) return;
+    const original = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="bims-spinner" style="border-color:rgba(255,255,255,.4);border-top-color:#fff;margin-right:8px"></span>Procesando…';
+    setTimeout(() => {
+      mostrarDone('tarjeta');
+      btn.innerHTML = original; btn.disabled = false;
+    }, 1100);
   });
+
+  document.getElementById('restart').addEventListener('click', e => {
+    e.preventDefault(); doneWrap.hidden = true; document.getElementById('payFlow').hidden = false;
+    document.getElementById('mobileStepper').hidden = false;
+  });
+  document.getElementById('doneIrInicio').addEventListener('click', () => { location.href = 'index.html?estado=' + ESTADO_DESTINO; });
+  document.getElementById('doneVerCuenta').addEventListener('click', () => { location.href = 'index.html?estado=' + ESTADO_DESTINO; });
+
+  // ---- Menú de módulos en mobile (hamburguesa) ----
+  (function () {
+    const burger = document.getElementById('burgerBtn');
+    const nav = document.getElementById('topbarNav');
+    if (!burger || !nav) return;
+    const setOpen = open => { nav.classList.toggle('is-open', open); burger.setAttribute('aria-expanded', open); };
+    burger.addEventListener('click', () => setOpen(!nav.classList.contains('is-open')));
+    nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setOpen(false)));
+    document.addEventListener('click', e => {
+      if (nav.classList.contains('is-open') && !nav.contains(e.target) && !burger.contains(e.target)) setOpen(false);
+    });
+  })();
 </script>
 </body>
 </html>
