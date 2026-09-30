@@ -516,6 +516,8 @@ select.bims-input { box-shadow: var(--shadow-field); }
 .done-wrap { max-width: 480px; margin: 10px auto 0; animation: bims-in .3s ease-out; }
 .done-head { display: flex; gap: 14px; align-items: flex-start; }
 .done-icon { width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: #dff0d8; display: flex; align-items: center; justify-content: center; animation: bims-pop .45s cubic-bezier(.3,1.6,.6,1) .1s both; }
+/* NUEVO: variante roja del ícono de confirmación (pago rechazado) */
+.done-icon--danger { background: #f2dede; }
 .done-title { margin: 0 0 4px; font-family: var(--bims-font-bold); font-weight: 700; font-size: 18px; }
 .done-sub { margin: 0; color: var(--bims-text-secondary); }
 .done-data { margin-top: 20px; }
@@ -526,6 +528,22 @@ select.bims-input { box-shadow: var(--shadow-field); }
 .done-actions { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .done-actions .bims-btn { width: 100%; }
 @keyframes bims-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+/* NUEVO: no validado contra prod — pantalla de transición a la pasarela de Bancard */
+.bancard-redirect-wrap {
+  background: linear-gradient(180deg, var(--bims-navy) 0%, var(--bims-navy-deep) 100%);
+  margin: -18px calc(var(--gutter) * -1) 0;
+  padding: 56px var(--gutter) 40px;
+  min-height: 420px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  animation: bims-in .3s ease-out;
+}
+.bancard-card { max-width: 420px; width: 100%; text-align: center; }
+.bancard-icon { display: flex; justify-content: center; margin-bottom: 4px; }
+.bims-spinner--lg { width: 36px; height: 36px; border-width: 3px; }
+.bancard-ssl { margin: 12px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--bims-text-muted); }
+.bancard-proto-links { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--bims-border); font-size: 12px; color: var(--bims-text-secondary); }
+.bancard-help { max-width: 420px; width: 100%; margin: 16px auto 0; }
 
 /* =========================================================
    Responsive (agregado) — breakpoints Bootstrap 3
@@ -749,13 +767,56 @@ select.bims-input { box-shadow: var(--shadow-field); }
           </div>
         </section>
 
-        <!-- NUEVO: no validado contra prod — pago con tarjeta, no existía en el proto. Se simplifica a un botón de pago (sin campos de tarjeta) -->
+        <!-- NUEVO: no validado contra prod — pago con tarjeta. BIMS no toma los datos de la tarjeta: se paga en la pasarela de Bancard -->
         <section class="bims-card" id="tarjeta" hidden>
           <div class="bims-card__section">
             <h2 class="bims-panel-title">Pago con tarjeta</h2>
-            <p class="pay-lead">Se va a debitar <b id="tarjetaImporte">Gs. 1.527.400</b> de tu tarjeta guardada.</p>
+            <p class="pay-lead">Vas a pagar <b id="tarjetaImporte">Gs. 1.527.400</b> con tu tarjeta.</p>
+            <p class="bims-dropzone__hint" style="margin:-10px 0 14px">Vas a completar el pago en el sitio seguro de Bancard.</p>
             <div class="pay-actions" style="justify-content:flex-start">
-              <button class="bims-btn bims-btn--success" id="payCard">Pagar <span id="payCardMonto">Gs. 1.527.400</span> con tarjeta</button>
+              <button class="bims-btn bims-btn--success" id="payCard">Pagar <span id="payCardMonto">Gs. 1.527.400</span> con Bancard</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- NUEVO: no validado contra prod — pantalla de transición a la pasarela de Bancard -->
+      <div class="bancard-redirect-wrap" id="bancardRedirect" hidden>
+        <section class="bims-card bancard-card">
+          <div class="bims-card__section">
+            <div class="bancard-icon"><span class="bims-spinner bims-spinner--lg"></span></div>
+            <h2 class="done-title">Te estamos llevando a Bancard</h2>
+            <p class="done-sub">Vas a pagar <b id="bancardImporte">Gs. 1.527.400</b> en su sitio seguro.</p>
+            <div class="bims-progress" style="margin-top:16px"><div class="bims-progress__bar" id="bancardProgressBar"></div></div>
+            <p class="bancard-ssl">Conexión segura (SSL)</p>
+            <!-- Si el navegador bloquea la pestaña de Bancard, queda este link para abrirla a mano -->
+            <a class="bims-btn bims-btn--success" id="bancardManualLink" href="#" target="_blank" rel="noopener" hidden style="margin-top:16px">Ir a Bancard</a>
+            <!-- NUEVO: proto — simula la vuelta de Bancard (en prod, Bancard redirige de nuevo a BIMS con el resultado) -->
+            <div class="bancard-proto-links" id="bancardProtoLinks" hidden>
+              Proto: <a href="#" id="simAprobado">simular pago aprobado</a> · <a href="#" id="simRechazado">simular pago rechazado</a>
+            </div>
+          </div>
+        </section>
+        <div class="promo promo--b bancard-help">
+          <span class="promo__icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7.5v.5"/></svg></span>
+          <div class="promo__text">Si tenés alguna duda, escribinos a <a href="mailto:facturacion@bimsapp.com">facturacion@bimsapp.com</a></div>
+        </div>
+      </div>
+
+      <!-- NUEVO: no validado contra prod — Bancard rechazó el pago; el tag de estado no cambia -->
+      <div class="done-wrap" id="bancardError" hidden>
+        <section class="bims-card">
+          <div class="bims-card__section">
+            <div class="done-head">
+              <div class="done-icon done-icon--danger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a94442" stroke-width="3"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+              <div>
+                <h2 class="done-title">No pudimos procesar el pago</h2>
+                <p class="done-sub">Bancard rechazó la operación. No se hizo ningún cobro.</p>
+              </div>
+            </div>
+            <div class="done-actions">
+              <button class="bims-btn bims-btn--success" id="bancardRetry">Intentar de nuevo</button>
+              <button class="bims-btn bims-btn--default" id="bancardPagarTransferencia">Pagar por transferencia</button>
             </div>
           </div>
         </section>
@@ -1040,9 +1101,9 @@ select.bims-input { box-shadow: var(--shadow-field); }
         doneSub.innerHTML = '<b>Pago en revisión</b>: lo validaremos en un plazo de hasta 48 horas hábiles. Mientras tanto, podés seguir usando BIMS con normalidad.';
       }
     } else {
-      // Por vencer o Vencido (o Activo) + pago con tarjeta → Activo (ciclo nuevo)
+      // Por vencer o Vencido (o Activo) + pago con tarjeta (Bancard) → Activo (ciclo nuevo)
       ESTADO_DESTINO = 'activo';
-      doneTitle.textContent = '¡Pago realizado!';
+      doneTitle.textContent = 'Pago aprobado';
       doneSub.textContent = 'Tu suscripción ya está activa. El comprobante de pago llega por correo.';
       doneMetodo.textContent = 'Tarjeta de crédito/débito';
       doneFileRow.hidden = true;
@@ -1065,17 +1126,74 @@ select.bims-input { box-shadow: var(--shadow-field); }
     }, 1100);
   });
 
-  // ---- Pagar con tarjeta → confirmación ----
-  // NUEVO: no existe en prod. Se simplifica a un botón de pago (sin campos de tarjeta) para el prototipo.
-  document.getElementById('payCard').addEventListener('click', () => {
-    const btn = document.getElementById('payCard');
-    if (btn.disabled) return;
-    const original = btn.innerHTML;
-    btn.disabled = true; btn.innerHTML = '<span class="bims-spinner" style="border-color:rgba(255,255,255,.4);border-top-color:#fff;margin-right:8px"></span>Procesando…';
+  // =========================================================
+  // NUEVO: no existe en prod — pago con tarjeta vía Bancard.
+  // BIMS no toma los datos de la tarjeta: se redirige a la pasarela de Bancard
+  // en una pestaña nueva y se simula la vuelta con los links de "Simular pago...".
+  // El process_id de la URL lo genera el backend en cada intento de pago y VENCE
+  // a los pocos minutos — el de acá es fijo, solo de ejemplo para el prototipo.
+  // =========================================================
+  const BANCARD_URL = 'https://vpos.infonet.com.py/payment/single_buy?process_id=L4nUbqFiVM8zBgB9dQqS';
+  const bancardWrap = document.getElementById('bancardRedirect');
+  const bancardErrorWrap = document.getElementById('bancardError');
+  const bancardImporte = document.getElementById('bancardImporte');
+  const bancardProgressBar = document.getElementById('bancardProgressBar');
+  const bancardManualLink = document.getElementById('bancardManualLink');
+  const bancardProtoLinks = document.getElementById('bancardProtoLinks');
+
+  function mostrarRedireccionBancard() {
+    document.getElementById('payFlow').hidden = true;
+    bancardErrorWrap.hidden = true;
+    bancardWrap.hidden = false;
+    document.getElementById('mobileStepper').hidden = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    bancardImporte.textContent = fmtGs(TOTAL);
+    bancardManualLink.hidden = true;
+    bancardManualLink.href = BANCARD_URL;
+    bancardProtoLinks.hidden = true;
+
+    // Barra de progreso animada (~3s) simulando la conexión con Bancard
+    bancardProgressBar.style.transition = 'none';
+    bancardProgressBar.style.width = '0%';
+    void bancardProgressBar.offsetWidth; // fuerza reflow para poder reiniciar la animación
+    bancardProgressBar.style.transition = 'width 3s linear';
+    requestAnimationFrame(() => { bancardProgressBar.style.width = '100%'; });
+
     setTimeout(() => {
-      mostrarDone('tarjeta');
-      btn.innerHTML = original; btn.disabled = false;
-    }, 1100);
+      // En un navegador real, abrir una pestaña desde un setTimeout (no un click directo)
+      // suele bloquearse — por eso queda el botón "Ir a Bancard" como respaldo.
+      const ventana = window.open(BANCARD_URL, '_blank', 'noopener');
+      if (!ventana) bancardManualLink.hidden = false;
+      bancardProtoLinks.hidden = false;
+    }, 3000);
+  }
+  document.getElementById('payCard').addEventListener('click', mostrarRedireccionBancard);
+
+  function mostrarBancardError() {
+    bancardWrap.hidden = true;
+    doneWrap.hidden = true;
+    document.getElementById('payFlow').hidden = true;
+    bancardErrorWrap.hidden = false;
+    document.getElementById('mobileStepper').hidden = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  // Proto: simula la respuesta que en prod llegaría al volver de Bancard
+  document.getElementById('simAprobado').addEventListener('click', e => { e.preventDefault(); mostrarDone('tarjeta'); });
+  document.getElementById('simRechazado').addEventListener('click', e => { e.preventDefault(); mostrarBancardError(); });
+
+  document.getElementById('bancardRetry').addEventListener('click', () => {
+    bancardErrorWrap.hidden = true;
+    document.getElementById('payFlow').hidden = false;
+    document.getElementById('mobileStepper').hidden = false;
+  });
+  document.getElementById('bancardPagarTransferencia').addEventListener('click', () => {
+    bancardErrorWrap.hidden = true;
+    document.getElementById('payFlow').hidden = false;
+    document.getElementById('mobileStepper').hidden = false;
+    metodos[0].checked = true; metodos[1].checked = false; // pasa a transferencia
+    metodos.forEach(o => o.closest('.bims-option').classList.toggle('is-selected', o.checked));
+    syncMetodo();
   });
 
   document.getElementById('restart').addEventListener('click', e => {
@@ -1084,6 +1202,21 @@ select.bims-input { box-shadow: var(--shadow-field); }
   });
   document.getElementById('doneIrInicio').addEventListener('click', () => { location.href = 'index.html?estado=' + ESTADO_DESTINO; });
   document.getElementById('doneVerCuenta').addEventListener('click', () => { location.href = 'index.html?estado=' + ESTADO_DESTINO; });
+
+  // NUEVO: entrada directa por querystring para el proto — ?paso=redireccion o ?retorno=aprobado|rechazado
+  // (se combinan con ?estado=..., ej. pagar-suscripcion.html?estado=vencido&paso=redireccion)
+  (function () {
+    const qs = new URLSearchParams(location.search);
+    const retorno = qs.get('retorno');
+    if (retorno === 'aprobado') { mostrarDone('tarjeta'); return; }
+    if (retorno === 'rechazado') { mostrarBancardError(); return; }
+    if (qs.get('paso') === 'redireccion') {
+      metodos[1].checked = true; metodos[0].checked = false;
+      metodos.forEach(o => o.closest('.bims-option').classList.toggle('is-selected', o.checked));
+      syncMetodo();
+      mostrarRedireccionBancard();
+    }
+  })();
 
   // ---- Menú de módulos en mobile (hamburguesa) ----
   (function () {

@@ -31,7 +31,9 @@ Un tag junto al título (`#stateTag`) muestra el estado en las dos pantallas:
 - **Por vencer → Vencido**: vence sin pago.
 - **Por vencer o Vencido + pago con tarjeta → Activo** (ciclo nuevo). Implementado de
   forma universal (cualquier estado + tarjeta → Activo), ya que pagar con tarjeta
-  siempre deja la cuenta al día.
+  siempre deja la cuenta al día. El pago con tarjeta redirige a Bancard — ver
+  "Pago con tarjeta → pasarela de Bancard" más abajo; esta transición solo ocurre si
+  se simula la vuelta como "aprobado" (si se simula "rechazado", el tag no cambia).
 - **Vencido + comprobante de transferencia → En revisión** (la cuenta no se bloquea).
 - **En revisión + validación de Operaciones → Activo** (no simulado: no hay un panel
   de Operaciones en este proto; se llegaría manualmente cambiando el querystring).
@@ -51,6 +53,10 @@ falta o es inválido). `index.html` arma el link de "Ir a pagar" con el estado a
 `pagar-suscripcion.html` lo lee al cargar (`ESTADO_ORIGEN`, fijo durante toda la
 sesión de esa pantalla) y decide a dónde vuelve "Ir al inicio" / "Ver estado de
 cuenta" según lo que pasó en el pago (`ESTADO_DESTINO`).
+
+`pagar-suscripcion.html` además acepta `?paso=redireccion` y
+`?retorno=aprobado|rechazado` para entrar directo a cualquier paso del pago con
+tarjeta/Bancard (se combinan con `?estado=`) — ver "Pago con tarjeta" más abajo.
 
 ### Selector del proto
 
@@ -148,13 +154,49 @@ tres puntos de arriba.
 - La promo amarilla de 180 días (banner en `index.html`) se oculta solo en Activo;
   se muestra en Por vencer, Vencido y En revisión.
 
-## Pago con tarjeta — nuevo en este proto
+## Pago con tarjeta → pasarela de Bancard
 
-No existía antes (elegir "Tarjeta de crédito/débito" no mostraba nada). Se agregó
-`#tarjeta` (`<!-- NUEVO -->`): un botón "Pagar Gs. X con tarjeta" con el monto ya
-calculado, sin campos de número de tarjeta/vencimiento/CVV — simplificado a propósito
-para el proto, ya que el brief solo pedía que el monto sea correcto. Al hacer click
-simula el cobro y muestra la confirmación con destino `?estado=activo`.
+BIMS **no toma los datos de la tarjeta** (no hay campos de número/vencimiento/CVV/
+titular): al elegir "Tarjeta de crédito/débito" se muestra el monto y un botón verde
+que redirige a Bancard. Pantallas nuevas, todas marcadas `<!-- NUEVO -->`:
+
+1. **`#tarjeta`** (dentro de `#payFlow`): monto + nota "Vas a completar el pago en el
+   sitio seguro de Bancard" + botón "Pagar Gs. X con Bancard".
+2. **`#bancardRedirect`** — pantalla de transición, fondo con gradiente navy
+   (`var(--bims-navy)` → `var(--bims-navy-deep)`, tokens del kit, `.bancard-redirect-wrap`).
+   Tarjeta centrada con spinner (no un check verde: todavía no se cobró), "Te estamos
+   llevando a Bancard", el monto, una barra de progreso animada 3s
+   (`.bims-progress`/`#bancardProgressBar`) y "Conexión segura (SSL)" en gris. Debajo,
+   el aviso amarillo del kit (`.promo.promo--b`) con el mail de facturación. El topbar
+   y el subbar de BIMS se mantienen.
+3. **Redirección real**: al terminar la barra (`mostrarRedireccionBancard()`), se abre
+   en pestaña nueva
+   `https://vpos.infonet.com.py/payment/single_buy?process_id=L4nUbqFiVM8zBgB9dQqS`.
+   **El `process_id` es de ejemplo, fijo** — en prod lo genera el backend en cada
+   intento de pago y vence a los pocos minutos (comentario en el script). Si
+   `window.open` devuelve `null` (el navegador bloqueó la pestaña — algo esperable,
+   ya que el `open` ocurre en un `setTimeout`, no en un click directo), aparece el
+   botón de respaldo "Ir a Bancard" (`#bancardManualLink`, un link real con
+   `target="_blank"`).
+4. **Vuelta de Bancard (simulada)**: junto al botón de respaldo aparecen los links de
+   proto "Simular pago aprobado" / "Simular pago rechazado" (`#bancardProtoLinks`). En
+   prod, Bancard redirige de nuevo a BIMS con el resultado real; acá no hay backend
+   que lo reciba, así que se simula a mano.
+   - **Aprobado** → `mostrarDone('tarjeta')`: la confirmación de siempre, tag →
+     Activo, título "Pago aprobado".
+   - **Rechazado** → `#bancardError`: "No pudimos procesar el pago" / "Bancard
+     rechazó la operación. No se hizo ningún cobro.", botones "Intentar de nuevo"
+     (vuelve a `#payFlow` con tarjeta ya seleccionada) y "Pagar por transferencia"
+     (cambia el método y vuelve a `#payFlow`). El tag **no cambia** — nunca se toca
+     `ESTADO_DESTINO` en este camino.
+5. **Entrada directa para probar** (se combinan con `?estado=`): `?paso=redireccion`
+   abre directo la pantalla de transición; `?retorno=aprobado` o `?retorno=rechazado`
+   abren directo cada resultado. Ej.:
+   `pagar-suscripcion.html?estado=vencido&paso=redireccion`.
+
+El monto es una sola fuente (`TOTAL`, calculada en `recomputeResumen()`): el botón de
+`#tarjeta`, la pantalla de transición y la confirmación siempre muestran el mismo
+número — verificado en Por vencer y Vencido, con Plan Mensual y Semestral.
 
 ## Pendientes / a definir
 
