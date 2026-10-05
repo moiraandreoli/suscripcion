@@ -716,7 +716,7 @@ tr.sub:hover td { background: #eef2f5; }
         <span class="bims-alert-warning__icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
         <div>
           <b>Estamos validando tu pago de <span id="avisoMonto">Gs. 1.527.400</span>.</b>
-          <p>Lo enviaste el <span id="avisoFecha">25-09-2026</span> por transferencia. Te avisamos cuando esté validado, en hasta 48 horas hábiles. Tu cuenta sigue activa.</p>
+          <p>Recibimos tu pago por transferencia el <span id="avisoFecha">25/09/2026</span>. La validación puede demorar hasta 48 horas hábiles. Mientras tanto, podés seguir usando BIMS con normalidad. Te avisaremos cuando el pago esté validado.</p>
           <p><a href="#" data-doc="comprobante1">Ver comprobante</a></p>
           <p class="bims-alert-warning__nota">¿Enviaste un comprobante equivocado? Escribinos a <a href="mailto:facturacion@bimsapp.com">facturacion@bimsapp.com</a></p>
         </div>
@@ -962,7 +962,7 @@ tr.sub:hover td { background: #eef2f5; }
       const montoRevision = qp.get('monto') ? Number(qp.get('monto')) : totalHoy;
       const fechaRevision = qp.get('fecha') || FECHA_PAGO_ENVIADO;
       document.getElementById('avisoMonto').textContent = fmtGs(montoRevision);
-      document.getElementById('avisoFecha').textContent = fechaRevision;
+      document.getElementById('avisoFecha').textContent = fechaRevision.replace(/-/g, '/');
     }
   })();
 
