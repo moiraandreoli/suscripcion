@@ -463,8 +463,14 @@ select.bims-input { box-shadow: var(--shadow-field); }
 /* NUEVO: botón de copiar (ícono) */
 .bims-copy { margin-left: 6px; padding: 2px; border: 0; background: none; cursor: pointer; vertical-align: -3px; color: var(--bims-link); }
 .bims-copy.is-done { color: #3c763d; }
-/* NUEVO: no validado contra prod — texto "Copiado" junto al ícono, visible 1,5 s después de copiar */
-.bims-copy__msg { margin-left: 4px; font-size: 12px; font-family: var(--bims-font-bold); font-weight: 700; vertical-align: 3px; }
+/* NUEVO: no validado contra prod — mensaje "Copiado" flotante sobre el ícono (no corre el texto), visible 1,5 s después de copiar */
+.bims-copy { position: relative; }
+.bims-copy__msg {
+  position: absolute; bottom: calc(100% + 6px); right: -4px; z-index: 10;
+  padding: 3px 8px; border-radius: var(--radius-sm); background: rgba(0,0,0,.9); color: #fff;
+  font-size: 12px; line-height: 16px; white-space: nowrap; pointer-events: none; animation: bims-in .15s ease-out;
+}
+.bims-copy__msg::after { content: ""; position: absolute; top: 100%; right: 8px; border: 5px solid transparent; border-top-color: rgba(0,0,0,.9); border-bottom: 0; }
 /* NUEVO: zona de carga de archivo */
 .bims-dropzone {
   display: block; margin-top: 20px; padding: 24px 15px; text-align: center; cursor: pointer;
@@ -1012,7 +1018,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
   document.querySelectorAll('.bims-copy').forEach(b => b.addEventListener('click', e => {
     e.preventDefault(); navigator.clipboard?.writeText(b.dataset.copy);
     b.classList.add('is-done'); b.title = 'Copiado';
-    // NUEVO: además del color, se muestra el texto "Copiado" (role="status" para lectores de pantalla)
+    // NUEVO: además del color, se muestra el mensaje flotante "Copiado" (role="status" para lectores de pantalla)
     let msg = b.querySelector('.bims-copy__msg');
     if (!msg) { msg = document.createElement('span'); msg.className = 'bims-copy__msg'; msg.setAttribute('role', 'status'); b.appendChild(msg); }
     msg.textContent = 'Copiado';
