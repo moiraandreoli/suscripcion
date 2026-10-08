@@ -833,7 +833,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
               <div class="done-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3c763d" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></div>
               <div>
                 <h2 class="done-title" id="doneTitle">Comprobante recibido</h2>
-                <p class="done-sub" id="doneSub">Tu cuenta sigue activa hasta el 29-09-2026 a las 10:24 hs mientras validamos el pago. Cuando validemos el pago, te enviamos la factura por mail.</p>
+                <p class="done-sub" id="doneSub"><b>Pago en revisión</b>: lo validaremos en un plazo de hasta 48 horas hábiles. Mientras tanto, podés seguir usando BIMS con normalidad.</p>
               </div>
             </div>
             <table class="bims-table done-data">
@@ -908,7 +908,6 @@ select.bims-input { box-shadow: var(--shadow-field); }
   // suscripcion-resumen.html en En revisión). Prórroga de 48 horas hábiles desde la carga:
   // vie 25-09 → mar 29-09. No se calcula con aritmética de fechas.
   const FECHA_CARGA = '25-09-2026', HORA_CARGA = '10:24 hs';
-  const PRORROGA_HASTA = '29-09-2026 a las 10:24 hs';
 
   // Tag junto al título: arranca en el estado de origen y solo cambia cuando el pago
   // se concreta (comprobante ENVIADO → En revisión; Bancard aprobado → Activo).
@@ -1135,7 +1134,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
       ESTADO_DESTINO = 'revision';
       DESTINO_QUERY = '&monto=' + TOTAL + '&origen=' + ESTADO_ORIGEN
         + '&archivo=' + encodeURIComponent(document.getElementById('upName').textContent);
-      doneSub.textContent = 'Tu cuenta sigue activa hasta el ' + PRORROGA_HASTA + ' mientras validamos el pago. Cuando validemos el pago, te enviamos la factura por mail.';
+      doneSub.innerHTML = '<b>Pago en revisión</b>: lo validaremos en un plazo de hasta 48 horas hábiles. Mientras tanto, podés seguir usando BIMS con normalidad.';
     } else {
       // Por vencer o Vencido (o Activo) + pago con tarjeta (Bancard) → Activo (ciclo nuevo)
       ESTADO_DESTINO = 'activo';

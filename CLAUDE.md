@@ -115,8 +115,9 @@ control interactivo sin recarga — cada click navega. Vive solo en `index.html`
 - **Pago por transferencia en revisión**: fecha de carga `25-09-2026 10:24 hs`, medio
   "Transferencia", monto de ejemplo `Gs. 1.666.000`, prórroga hasta el
   `29-09-2026 a las 10:24 hs` (48 horas hábiles: viernes 25 → martes 29). Son las
-  constantes `FECHA_CARGA`, `HORA_CARGA` y `PRORROGA_HASTA`, **repetidas en el script
-  de las dos pantallas** — si cambian, hay que cambiarlas en ambas. La prórroga no se
+  constantes `FECHA_CARGA` y `HORA_CARGA`, **repetidas en el script de las dos
+  pantallas** (si cambian, hay que cambiarlas en ambas), y `PRORROGA_HASTA`, que solo
+  usa `index.html`. La prórroga no se
   calcula con aritmética de fechas. La confirmación de transferencia muestra esa
   misma fecha fija (ya no la fecha real del navegador); la de tarjeta sigue mostrando
   la fecha real.
@@ -320,9 +321,11 @@ se sacó a pedido). La factura se menciona solo en la bajada de la confirmación
 
 - **Tarjeta, pago aprobado**: "Tu suscripción ya está activa. Te vamos a enviar la
   factura por mail." (reemplaza a "El comprobante de pago llega por correo.")
-- **Transferencia, En revisión**: "Tu cuenta sigue activa hasta el 29-09-2026 a las
-  10:24 hs mientras validamos el pago. Cuando validemos el pago, te enviamos la
-  factura por mail."
+- **Transferencia, En revisión**: no menciona la factura. La bajada es "**Pago en
+  revisión**: lo validaremos en un plazo de hasta 48 horas hábiles. Mientras tanto,
+  podés seguir usando BIMS con normalidad." (a pedido, reemplazó al texto con la
+  fecha de la prórroga y la frase de la factura; la fecha `29-09-2026 a las 10:24 hs`
+  se muestra solo en el bloque de En revisión de `index.html`).
 
 ## Pendientes / a definir
 
