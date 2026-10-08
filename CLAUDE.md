@@ -235,8 +235,8 @@ que redirige a Bancard. Pantallas nuevas, todas marcadas `<!-- NUEVO -->`:
 
 1. **`#tarjeta`** (dentro de `#payFlow`): monto + nota "Vas a completar el pago en el
    sitio seguro de Bancard" + botón "Pagar Gs. X con Bancard".
-2. **`#bancardRedirect`** — pantalla de transición, fondo con gradiente navy
-   (`var(--bims-navy)` → `var(--bims-navy-deep)`, tokens del kit, `.bancard-redirect-wrap`).
+2. **`#bancardRedirect`** — pantalla de transición, con el mismo fondo que el resto
+   de las pantallas (`.bancard-redirect-wrap`; antes tenía un gradiente navy propio, se sacó a pedido).
    Tarjeta centrada con spinner (no un check verde: todavía no se cobró), "Te estamos
    llevando a Bancard", el monto, una barra de progreso animada 3s
    (`.bims-progress`/`#bancardProgressBar`) y "Conexión segura (SSL)" en gris. Debajo,

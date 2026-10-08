@@ -547,12 +547,10 @@ select.bims-input { box-shadow: var(--shadow-field); }
 @keyframes bims-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 
 /* NUEVO: no validado contra prod — pantalla de transición a la pasarela de Bancard */
+/* Mismo fondo que el resto de las pantallas (antes tenía un gradiente navy propio) */
 .bancard-redirect-wrap {
-  background: linear-gradient(180deg, var(--bims-navy) 0%, var(--bims-navy-deep) 100%);
-  margin: -18px calc(var(--gutter) * -1) 0;
-  padding: 56px var(--gutter) 40px;
-  min-height: 420px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  padding: 30px 0 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
   animation: bims-in .3s ease-out;
 }
 .bancard-card { max-width: 420px; width: 100%; text-align: center; }
@@ -560,7 +558,12 @@ select.bims-input { box-shadow: var(--shadow-field); }
 .bims-spinner--lg { width: 36px; height: 36px; border-width: 3px; }
 .bancard-ssl { margin: 12px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--bims-text-muted); }
 .bancard-proto-links { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--bims-border); font-size: 12px; color: var(--bims-text-secondary); }
-.bancard-help { max-width: 420px; width: 100%; margin: 16px auto 0; }
+.bancard-help { max-width: 420px; width: 100%; margin: 0 auto; }
+/* Aviso amarillo del kit (mismas reglas que en suscripcion-resumen.html; acá faltaban y el aviso salía sin estilo) */
+.promo { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-radius: var(--radius-sm); animation: bims-in .2s ease-out; }
+.promo__text { flex: 1; }
+.promo--b { background: var(--bims-bg-highlight); border: 1px solid #efe2b0; border-left: 4px solid #e0b93a; color: var(--bims-text); }
+.promo__icon { width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: #f5e3a3; color: #8a6d1c; display: flex; align-items: center; justify-content: center; }
 
 /* =========================================================
    Responsive (agregado) — breakpoints Bootstrap 3
