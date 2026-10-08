@@ -307,43 +307,22 @@ En `pagar-suscripcion.html`, sección "Instrucciones de transferencia":
   principal. El tag no cambia hasta que se envía. El aviso se oculta al quitar el
   archivo o al enviar.
 
-## Otros estados de pantalla (no cambian el tag)
+## Factura: solo una frase en la confirmación (sin estado aparte)
 
-Los dos tienen control de proto con borde punteado y entrada por querystring.
+(Se armaron y se sacaron a pedido: "Sin pagos pendientes" en `index.html` — nunca
+llegó a un commit, no está en el historial de git — y "Cambió el total" y "Factura
+pendiente" en `pagar-suscripcion.html`, que sí quedaron en el commit `3972926` por
+si hace falta retomarlos.)
 
-(Existió un tercero, "Sin pagos pendientes" en `index.html` — estado vacío con la
-próxima fecha de cobro —, y se sacó a pedido. Después de un pago con tarjeta
-aprobado, "Ir al inicio" vuelve a `?estado=activo`, como antes.)
+No hay un estado de "factura pendiente" (existió con un alert y un control de proto, y
+se sacó a pedido). La factura se menciona solo en la bajada de la confirmación
+(`#doneSub`):
 
-### Cambió el total — `pagar-suscripcion.html?total=cambio`
-
-- Escenario: la pantalla quedó abierta y pasó un día. Se suma un día de adicionales
-  (`ADICIONALES_DIA = Gs. 46.200`, la suma de las tarifas diarias del detalle de
-  consumos) y "hoy" pasa del `15-09-2026` al `16-09-2026`: adicionales
-  `Gs. 1.233.600`, total mensual `Gs. 1.573.600`, total semestral (Por vencer)
-  `Gs. 2.865.600`. La nota de próxima factura pasa a "del 17-09-2026 al 18-09-2026".
-- alert-info arriba de la tabla del resumen (`#totalCambio`): "El total cambió a
-  Gs. X porque se sumaron los adicionales de hoy. Revisalo antes de pagar."
-- Línea resaltada: la fila de adicionales (`#resumenAdicionalesRow.is-changed`, fondo
-  amarillo `#fcf8e3`) con el valor anterior tachado (`.pay-old`).
-- Control: botón "Simular cambio de total" bajo el resumen (`#protoTotal`, se puede
-  prender y apagar). Todo pasa por `setTotalCambio()` → `recomputeResumen()`, así que
-  el importe de transferencia, el botón de tarjeta, Bancard y la confirmación siguen
-  al total nuevo.
-- **No aplica en Vencido** (adicionales congelados): el control se oculta y el
-  querystring se ignora.
-- `index.html` no refleja este cambio: sigue con "hoy" `15-09-2026` y `Gs. 1.527.400`.
-
-### Factura pendiente — `pagar-suscripcion.html?bancard=ok&factura=pendiente`
-
-- En la confirmación de **pago aprobado** (tarjeta), aparte de los datos del pago:
-  alert-info `#facturaPendiente` "Tu factura se está emitiendo. Te la enviamos por
-  mail cuando esté lista." El título sigue siendo "Pago aprobado"; la bajada queda en
-  "Tu suscripción ya está activa." (se saca "El comprobante de pago llega por correo"
-  para no mezclarlo con la factura).
-- Control: botón "Simular factura pendiente" bajo la confirmación (`#protoFactura`,
-  solo visible en la confirmación de tarjeta). No aplica a transferencia.
-- No hay un estado de "factura emitida" con descarga: no está definido.
+- **Tarjeta, pago aprobado**: "Tu suscripción ya está activa. Te vamos a enviar la
+  factura por mail." (reemplaza a "El comprobante de pago llega por correo.")
+- **Transferencia, En revisión**: "Tu cuenta sigue activa hasta el 29-09-2026 a las
+  10:24 hs mientras validamos el pago. Cuando validemos el pago, te enviamos la
+  factura por mail."
 
 ## Pendientes / a definir
 
