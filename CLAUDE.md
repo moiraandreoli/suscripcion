@@ -261,18 +261,26 @@ que redirige a Bancard. Pantallas nuevas, todas marcadas `<!-- NUEVO -->`:
    Todo pasa por `volverDeBancard(resultado)`:
    - **Aprobado** (`ok`) → `mostrarDone('tarjeta')`: la confirmación de siempre, tag →
      Activo, título "Pago aprobado".
-   - **Rechazado** → vuelve a `#payFlow` (paso de método de pago) con alert-danger en
-     `#bancardAviso`: "Bancard rechazó el pago. No se hizo ningún cobro. Probá con
-     otra tarjeta o pagá por transferencia."
-   - **Cancelado** → vuelve a `#payFlow` con alert-info: "Cancelaste el pago en
-     Bancard. No se hizo ningún cobro."
-   - En rechazo y cancelación **se conservan el plan, el resumen de pago y el método**
-     (tarjeta sigue seleccionada, con su botón de pago listo para reintentar) y el tag
-     **no cambia** — nunca se toca `ESTADO_DESTINO` en ese camino. El aviso se oculta
-     al cambiar de método o al volver a ir a Bancard.
-   - **Se sacó** la pantalla intermedia `#bancardError` ("No pudimos procesar el
-     pago", con "Intentar de nuevo" / "Pagar por transferencia"): el rechazo ahora
-     deja al cliente directamente en el paso de método de pago.
+   - **Rechazado o cancelado** → pantalla de resultado propia (`#bancardResultado`,
+     `<!-- NUEVO -->`): se oculta el contenido de la pantalla de pago y queda un panel
+     blanco centrado de ~360px (`.bancard-result`) con ícono circular de 32px con "×",
+     título (bold, 16px), texto (gris, 13px) y dos botones del mismo ancho. Shell,
+     breadcrumb y tag sin cambios — el tag **no cambia**, nunca se toca
+     `ESTADO_DESTINO` en ese camino.
+     - Rechazo: ícono `#f2dede` / `#a94442`, "No pudimos procesar el pago", "Bancard
+       rechazó la operación. No se hizo ningún cobro.", botones "Intentar de nuevo"
+       (success) y "Pagar por transferencia" (default).
+     - Cancelación: ícono `#edf3f6` con "×" gris, "Cancelaste el pago", "No se hizo
+       ningún cobro.", botones "Volver a pagar con tarjeta" y "Pagar por transferencia".
+     - "Intentar de nuevo" / "Volver a pagar con tarjeta" vuelve a abrir la pantalla
+       intermedia de Bancard con el mismo plan y total. "Pagar por transferencia"
+       vuelve a `#payFlow` con transferencia seleccionada y su bloque abierto. Plan y
+       total se conservan en los dos casos (`#payFlow` solo se oculta).
+     - En ~360px los textos largos de los botones ocupan dos líneas (por eso ahí la
+       altura del botón no es fija).
+   - **Se sacaron** los alerts de rechazo/cancelación dentro del paso de método de
+     pago (`#bancardAviso`), que habían reemplazado a una primera versión de esta
+     pantalla.
 5. **Entrada directa para probar** (se combinan con `?estado=`): `?paso=redireccion`
    abre la pantalla de transición; `?bancard=ok|rechazado|cancelado` abre cada
    resultado con tarjeta ya seleccionada; `?plan=semestral` preselecciona el plan

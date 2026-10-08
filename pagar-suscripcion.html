@@ -517,10 +517,16 @@ select.bims-input { box-shadow: var(--shadow-field); }
 /* Alert de Bootstrap 3 (.alert-danger) */
 .bims-alert-danger { margin-top: 10px; padding: 10px 15px; border: 1px solid #ebccd1; border-radius: var(--radius-sm); background: #f2dede; color: #a94442; animation: bims-in .2s ease-out; }
 .bims-dropzone.is-error { border-color: #a94442; background: #fbf1f1; animation: bims-shake .35s; }
-/* Alert de Bootstrap 3 (.alert-info) */
-.bims-alert-info { margin-top: 10px; padding: 10px 15px; border: 1px solid #bce8f1; border-radius: var(--radius-sm); background: #d9edf7; color: #31708f; animation: bims-in .2s ease-out; }
-/* NUEVO: no validado contra prod — aviso de vuelta de Bancard (rechazo o cancelación), arriba del método de pago */
-.bancard-aviso { margin: 0 0 15px; }
+/* NUEVO: no validado contra prod — pantalla de resultado de Bancard (rechazo o cancelación): panel centrado de ~360px */
+.bancard-result-wrap { max-width: 360px; margin: 30px auto 0; animation: bims-in .3s ease-out; }
+.bancard-result { text-align: center; }
+.bancard-result__icon { width: 32px; height: 32px; margin: 0 auto 12px; border-radius: 50%; background: #f2dede; color: #a94442; display: flex; align-items: center; justify-content: center; }
+.bancard-result__icon.is-cancelado { background: #edf3f6; color: var(--bims-text-secondary); }
+.bancard-result__title { margin: 0 0 4px; font-family: var(--bims-font-bold); font-weight: 700; font-size: 16px; }
+.bancard-result__text { margin: 0; font-size: 13px; color: var(--bims-text-secondary); }
+.bancard-result__actions { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* Dos botones del mismo ancho: el texto puede ocupar dos líneas, así que la altura deja de ser fija */
+.bancard-result__actions .bims-btn { width: 100%; height: auto; min-height: 31px; line-height: 1.3; text-align: center; }
 /* NUEVO: no validado contra prod — archivo cargado pero todavía sin enviar (colores del alert-warning de Bootstrap 3) */
 .bims-upload__pending { margin: 10px 0 0; color: #8a6d3b; font-family: var(--bims-font-bold); font-weight: 700; }
 /* NUEVO: controles exclusivos del prototipo (borde punteado), no existen en prod */
@@ -725,8 +731,6 @@ select.bims-input { box-shadow: var(--shadow-field); }
         <section class="bims-card">
           <div class="bims-card__section">
             <h2 class="bims-panel-title">2. Método de pago</h2>
-            <!-- NUEVO: no validado contra prod — al volver de Bancard con rechazo (alert-danger) o cancelación (alert-info). Plan, resumen y método se conservan -->
-            <div class="bancard-aviso" id="bancardAviso" role="alert" hidden></div>
             <div class="bims-option-grid">
               <label class="bims-option bims-option--method"><input type="radio" name="metodo">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg>
@@ -827,6 +831,21 @@ select.bims-input { box-shadow: var(--shadow-field); }
           <span class="promo__icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7.5v.5"/></svg></span>
           <div class="promo__text">Si tenés alguna duda, escribinos a <a href="mailto:facturacion@bimsapp.com">facturacion@bimsapp.com</a></div>
         </div>
+      </div>
+
+      <!-- NUEVO: no validado contra prod — resultado de Bancard: pago rechazado o cancelado. El tag de estado no cambia -->
+      <div class="bancard-result-wrap" id="bancardResultado" hidden>
+        <section class="bims-card bancard-result" role="alert">
+          <div class="bims-card__section">
+            <div class="bancard-result__icon" id="bancardResultadoIcon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+            <h2 class="bancard-result__title" id="bancardResultadoTitulo">No pudimos procesar el pago</h2>
+            <p class="bancard-result__text" id="bancardResultadoTexto">Bancard rechazó la operación. No se hizo ningún cobro.</p>
+            <div class="bancard-result__actions">
+              <button class="bims-btn bims-btn--success" id="bancardRetry">Intentar de nuevo</button>
+              <button class="bims-btn bims-btn--default" id="bancardPagarTransferencia">Pagar por transferencia</button>
+            </div>
+          </div>
+        </section>
       </div>
 
       <div class="done-wrap" id="done" hidden>
@@ -1153,6 +1172,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
     sinEnviar.hidden = true;
     document.getElementById('payFlow').hidden = true;
     bancardWrap.hidden = true;
+    bancardResultado.hidden = true;
     doneWrap.hidden = false;
     document.getElementById('mobileStepper').hidden = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1178,7 +1198,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
   // =========================================================
   const BANCARD_URL = 'https://vpos.infonet.com.py/payment/single_buy?process_id=L4nUbqFiVM8zBgB9dQqS';
   const bancardWrap = document.getElementById('bancardRedirect');
-  const bancardAviso = document.getElementById('bancardAviso');
+  const bancardResultado = document.getElementById('bancardResultado');
   const bancardImporte = document.getElementById('bancardImporte');
   const bancardProgressBar = document.getElementById('bancardProgressBar');
   const bancardManualLink = document.getElementById('bancardManualLink');
@@ -1186,7 +1206,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
 
   function mostrarRedireccionBancard() {
     document.getElementById('payFlow').hidden = true;
-    bancardAviso.hidden = true;
+    bancardResultado.hidden = true;
     bancardWrap.hidden = false;
     document.getElementById('mobileStepper').hidden = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1207,30 +1227,43 @@ select.bims-input { box-shadow: var(--shadow-field); }
   }
   document.getElementById('payCard').addEventListener('click', mostrarRedireccionBancard);
 
-  // Vuelta de Bancard. Aprobado → confirmación. Rechazado o cancelado → se vuelve al paso de
-  // método de pago con el plan, el resumen y el método (tarjeta) tal como estaban, más un aviso.
-  // El tag no cambia: nunca se toca ESTADO_DESTINO en ese camino.
-  const BANCARD_AVISOS = {
-    rechazado: { clase: 'bims-alert-danger', texto: 'Bancard rechazó el pago. No se hizo ningún cobro. Probá con otra tarjeta o pagá por transferencia.' },
-    cancelado: { clase: 'bims-alert-info', texto: 'Cancelaste el pago en Bancard. No se hizo ningún cobro.' },
+  // Vuelta de Bancard. Aprobado → confirmación. Rechazado o cancelado → pantalla de resultado
+  // propia (#bancardResultado), en lugar del contenido de la pantalla de pago.
+  // El tag no cambia: nunca se toca ESTADO_DESTINO en ese camino. El plan y el total se
+  // conservan porque #payFlow solo se oculta (no se reinicia nada).
+  const BANCARD_RESULTADOS = {
+    rechazado: { titulo: 'No pudimos procesar el pago', texto: 'Bancard rechazó la operación. No se hizo ningún cobro.', reintentar: 'Intentar de nuevo' },
+    cancelado: { titulo: 'Cancelaste el pago', texto: 'No se hizo ningún cobro.', reintentar: 'Volver a pagar con tarjeta' },
   };
   function volverDeBancard(resultado) {
     if (resultado === 'ok') return mostrarDone('tarjeta');
-    const aviso = BANCARD_AVISOS[resultado];
-    if (!aviso) return;
+    const r = BANCARD_RESULTADOS[resultado];
+    if (!r) return;
+    document.getElementById('bancardResultadoIcon').classList.toggle('is-cancelado', resultado === 'cancelado');
+    document.getElementById('bancardResultadoTitulo').textContent = r.titulo;
+    document.getElementById('bancardResultadoTexto').textContent = r.texto;
+    document.getElementById('bancardRetry').textContent = r.reintentar;
     bancardWrap.hidden = true;
     doneWrap.hidden = true;
-    document.getElementById('payFlow').hidden = false;
-    document.getElementById('mobileStepper').hidden = false;
-    bancardAviso.className = 'bancard-aviso ' + aviso.clase;
-    bancardAviso.textContent = aviso.texto;
-    bancardAviso.hidden = false;
-    setTimeout(() => bancardAviso.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+    document.getElementById('payFlow').hidden = true;
+    document.getElementById('mobileStepper').hidden = true;
+    bancardResultado.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   // Proto: simula la respuesta que en prod llegaría al volver de Bancard
   bancardProtoLinks.querySelectorAll('[data-bancard]').forEach(b => b.addEventListener('click', () => volverDeBancard(b.dataset.bancard)));
-  // El aviso se va cuando se cambia de método (al reintentar con tarjeta lo oculta mostrarRedireccionBancard)
-  metodos.forEach(r => r.addEventListener('change', () => { bancardAviso.hidden = true; }));
+
+  // "Intentar de nuevo" / "Volver a pagar con tarjeta": de nuevo a la pantalla intermedia de Bancard, mismo plan y total
+  document.getElementById('bancardRetry').addEventListener('click', mostrarRedireccionBancard);
+  // "Pagar por transferencia": vuelve a la pantalla de pago con transferencia seleccionada y su bloque abierto
+  document.getElementById('bancardPagarTransferencia').addEventListener('click', () => {
+    bancardResultado.hidden = true;
+    document.getElementById('payFlow').hidden = false;
+    document.getElementById('mobileStepper').hidden = false;
+    metodos[0].checked = true; metodos[1].checked = false;
+    metodos.forEach(o => o.closest('.bims-option').classList.toggle('is-selected', o.checked));
+    syncMetodo();
+  });
 
   document.getElementById('restart').addEventListener('click', e => {
     e.preventDefault(); doneWrap.hidden = true; document.getElementById('payFlow').hidden = false;
@@ -1257,7 +1290,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
       r.checked = true; r.dispatchEvent(new Event('change'));
     }
     const bancard = qs.get('bancard') || { aprobado: 'ok', rechazado: 'rechazado' }[qs.get('retorno')];
-    if (bancard === 'ok' || BANCARD_AVISOS[bancard]) { elegirTarjeta(); volverDeBancard(bancard); return; }
+    if (bancard === 'ok' || BANCARD_RESULTADOS[bancard]) { elegirTarjeta(); volverDeBancard(bancard); return; }
     if (qs.get('paso') === 'redireccion') { elegirTarjeta(); mostrarRedireccionBancard(); }
   })();
 
