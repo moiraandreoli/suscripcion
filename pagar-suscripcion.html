@@ -527,6 +527,14 @@ select.bims-input { box-shadow: var(--shadow-field); }
 .proto-switch { font-size: 12px; color: var(--bims-text-muted); display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
 .proto-switch button { font: inherit; padding: 2px 8px; border: 1px dashed var(--bims-border-strong); background: #fff; color: var(--bims-text-secondary); border-radius: 2px; cursor: pointer; }
 .proto-switch button:hover { border-color: var(--bims-link); color: var(--bims-link); }
+.proto-switch button.is-on { border-style: solid; border-color: var(--bims-link); color: var(--bims-link); }
+.proto-switch--left { justify-content: flex-start; margin-top: 12px; }
+/* NUEVO: no validado contra prod — el total cambió: aviso arriba del resumen y línea resaltada (amarillo del alert-warning) */
+.total-aviso { margin: 0 0 15px; }
+.pay-summary tr.is-changed td { background: #fcf8e3; }
+.pay-old { display: block; font-size: 12px; color: var(--bims-text-secondary); text-decoration: line-through; }
+/* NUEVO: no validado contra prod — factura pendiente, aparte del pago aprobado */
+.factura-aviso { margin-top: 20px; }
 
 /* ---- Confirmación ---- */
 .bims-btn--default { background: #fff; color: var(--bims-text); border: 1px solid var(--bims-border); box-shadow: 0 1px 2px #e3e3e3; } /* (~) btn-default */
@@ -706,15 +714,22 @@ select.bims-input { box-shadow: var(--shadow-field); }
 
           <div class="bims-card__section">
             <h2 class="bims-panel-title">Resumen de pago</h2>
+            <!-- NUEVO: no validado contra prod — el total cambió mientras la pantalla estaba abierta (se sumaron los adicionales del día) -->
+            <div class="bims-alert-info total-aviso" id="totalCambio" role="status" hidden></div>
             <table class="bims-table pay-summary">
               <tbody>
-                <tr><td id="resumenAdicionalesLabel">Adicionales hasta hoy</td><td class="num" id="resumenAdicionales">Gs. 1.187.400</td></tr>
+                <tr id="resumenAdicionalesRow"><td id="resumenAdicionalesLabel">Adicionales hasta hoy</td><td class="num" id="resumenAdicionales">Gs. 1.187.400</td></tr>
                 <tr><td id="resumenPlanLabel">Plan Mensual</td><td class="num" id="resumenPlan">Gs. 340.000</td></tr>
                 <tr class="is-total"><td style="text-align:left">Total a pagar<span class="hint">IVA incluido</span></td><td class="num" id="resumenTotal">Gs. 1.527.400</td></tr>
               </tbody>
             </table>
             <!-- NUEVO: no validado contra prod — aclara qué días de adicionales quedan fuera de este pago (ciclos: plan prepago, adicionales pospago) -->
             <p class="pay-lead" id="resumenNotaProximaFactura" style="margin-top:10px" hidden></p>
+            <!-- NUEVO: control exclusivo del prototipo — no aplica en Vencido (los adicionales están congelados) -->
+            <div class="proto-switch proto-switch--left" id="protoTotal">
+              <span>Solo prototipo:</span>
+              <button type="button" id="simTotalCambio" aria-pressed="false">Simular cambio de total</button>
+            </div>
           </div>
         </section>
 
@@ -846,12 +861,19 @@ select.bims-input { box-shadow: var(--shadow-field); }
                 <tr class="is-total"><td style="text-align:left" id="doneMontoLabel">Monto a validar</td><td class="num" id="doneMonto">Gs. 1.527.400</td></tr>
               </tbody>
             </table>
+            <!-- NUEVO: no validado contra prod — el pago está aprobado pero la factura todavía se está emitiendo (se informa aparte) -->
+            <div class="bims-alert-info factura-aviso" id="facturaPendiente" role="status" hidden>Tu factura se está emitiendo. Te la enviamos por mail cuando esté lista.</div>
             <div class="done-actions">
               <button class="bims-btn bims-btn--default" id="doneVerCuenta">Ver estado del pago</button>
               <button class="bims-btn bims-btn--primary" id="doneIrInicio">Ir al inicio</button>
             </div>
           </div>
         </section>
+        <!-- NUEVO: control exclusivo del prototipo — solo en la confirmación de pago aprobado (tarjeta) -->
+        <div class="proto-switch" id="protoFactura" style="margin-top:10px" hidden>
+          <span>Solo prototipo:</span>
+          <button type="button" id="simFacturaPendiente" aria-pressed="false">Simular factura pendiente</button>
+        </div>
         <p class="bims-dropzone__hint" style="text-align:center;margin-top:10px" id="doneRestartWrap">Proto: <a href="#" id="restart">volver al paso anterior</a></p>
       </div>
     </div>
@@ -881,7 +903,8 @@ select.bims-input { box-shadow: var(--shadow-field); }
   if (ESTADO_ORIGEN === 'revision') location.replace('index.html?estado=revision');
   const CONGELADO = ESTADO_ORIGEN === 'vencido' || ESTADO_ORIGEN === 'revision';
   const FECHA_VENCIMIENTO = '18-09-2026';
-  const ADICIONALES = CONGELADO ? 1326000 : 1187400; // hasta el vencimiento vs. hasta hoy
+  const ADICIONALES_BASE = CONGELADO ? 1326000 : 1187400; // hasta el vencimiento vs. hasta hoy
+  let ADICIONALES = ADICIONALES_BASE; // cambia si se simula "cambió el total" (ver setTotalCambio)
   // 3/5: Vencido y Por vencer permiten elegir 30/180 días; en Activo y En revisión el plan es informativo
   const PUEDE_ELEGIR_PLAN = ESTADO_ORIGEN === 'vencido' || ESTADO_ORIGEN === 'por-vencer';
   let ESTADO_DESTINO = ESTADO_ORIGEN; // a dónde navegan "Ir al inicio" / "Ver estado del pago"
@@ -897,11 +920,17 @@ select.bims-input { box-shadow: var(--shadow-field); }
   // queda a definir con negocio — no se calcula (ver CLAUDE.md).
   // =========================================================
   const CICLO_ACTUAL_INICIO = '20-08-2026';
-  const FECHA_HOY = '15-09-2026';
+  let FECHA_HOY = '15-09-2026';
   const CICLO_NUEVO_INICIO = '19-09-2026'; // = vencimiento + 1 día
   const CICLO_NUEVO_FIN = { mensual: '18-10-2026', semestral: '17-03-2027' };
   const PUEDE_CALCULAR_CICLO_NUEVO = !CONGELADO; // false en Vencido/En revisión: fecha de inicio a definir
-  const DIAS_RESTO_INICIO = '16-09-2026', DIAS_RESTO_FIN = FECHA_VENCIMIENTO; // hoy+1 .. vencimiento
+  let DIAS_RESTO_INICIO = '16-09-2026'; // hoy+1 .. vencimiento
+  const DIAS_RESTO_FIN = FECHA_VENCIMIENTO;
+  // NUEVO: "cambió el total" — la pantalla quedó abierta y pasó un día: se suma un día más de
+  // adicionales (Gs. 46.200 = suma de las tarifas diarias del detalle de consumos) y "hoy" pasa
+  // del 15-09 al 16-09. Fechas fijas, no calculadas. No aplica en Vencido (adicionales congelados).
+  const ADICIONALES_DIA = 46200;
+  let TOTAL_CAMBIO = false;
 
   // NUEVO: datos de ejemplo fijos del pago por transferencia (los mismos que muestra
   // suscripcion-resumen.html en En revisión). Prórroga de 48 horas hábiles desde la carga:
@@ -962,7 +991,12 @@ select.bims-input { box-shadow: var(--shadow-field); }
     resumenAdicionalesLabel.innerHTML = (CONGELADO
       ? `Adicionales hasta el ${FECHA_VENCIMIENTO}, fecha de vencimiento`
       : 'Adicionales hasta hoy') + `<span class="hint">del ${adicionalesDesde} al ${adicionalesHasta}</span>`;
-    resumenAdicionales.textContent = fmtGs(ADICIONALES);
+    resumenAdicionales.innerHTML = (TOTAL_CAMBIO ? `<span class="pay-old">${fmtGs(ADICIONALES_BASE)}</span>` : '') + fmtGs(ADICIONALES);
+    // Si el total cambió: aviso arriba del resumen y la línea de adicionales resaltada
+    document.getElementById('resumenAdicionalesRow').classList.toggle('is-changed', TOTAL_CAMBIO);
+    const totalCambio = document.getElementById('totalCambio');
+    totalCambio.hidden = !TOTAL_CAMBIO;
+    if (TOTAL_CAMBIO) totalCambio.textContent = `El total cambió a ${fmtGs(TOTAL)} porque se sumaron los adicionales de hoy. Revisalo antes de pagar.`;
 
     // Plan: rige desde el ciclo siguiente (prepago) — fecha a definir si se paga con la cuenta Vencida
     const finNuevoCiclo = proximoVencimiento(plan.key);
@@ -985,6 +1019,23 @@ select.bims-input { box-shadow: var(--shadow-field); }
     }
   }
   recomputeResumen();
+
+  // NUEVO: proto — simula que el total cambió (o ?total=cambio). Todo lo que sale de TOTAL
+  // (importe de transferencia, botón de tarjeta, Bancard, confirmación) se actualiza solo.
+  const simTotalCambio = document.getElementById('simTotalCambio');
+  document.getElementById('protoTotal').hidden = CONGELADO;
+  function setTotalCambio(on) {
+    if (CONGELADO) return;
+    TOTAL_CAMBIO = on;
+    ADICIONALES = ADICIONALES_BASE + (on ? ADICIONALES_DIA : 0);
+    FECHA_HOY = on ? '16-09-2026' : '15-09-2026';
+    DIAS_RESTO_INICIO = on ? '17-09-2026' : '16-09-2026';
+    simTotalCambio.classList.toggle('is-on', on); simTotalCambio.setAttribute('aria-pressed', on);
+    recomputeResumen();
+  }
+  simTotalCambio.addEventListener('click', () => setTotalCambio(!TOTAL_CAMBIO));
+  if (new URLSearchParams(location.search).get('total') === 'cambio') setTotalCambio(true);
+
   if (PUEDE_ELEGIR_PLAN) {
     document.querySelectorAll('input[name="plan"]').forEach(r => r.addEventListener('change', recomputeResumen));
   }
@@ -1110,6 +1161,19 @@ select.bims-input { box-shadow: var(--shadow-field); }
     return `${fechaActual()}, ${pad(d.getHours())}:${pad(d.getMinutes())} hs`;
   }
 
+  // NUEVO: factura pendiente — el pago con tarjeta está aprobado, pero la factura todavía se
+  // está emitiendo. Se informa aparte del pago (alert-info bajo los datos). Proto: botón
+  // "Simular factura pendiente" en la confirmación, o ?factura=pendiente.
+  let FACTURA_PENDIENTE = new URLSearchParams(location.search).get('factura') === 'pendiente';
+  function setFacturaPendiente(on) {
+    FACTURA_PENDIENTE = on;
+    document.getElementById('facturaPendiente').hidden = !on;
+    doneSub.textContent = on ? 'Tu suscripción ya está activa.' : 'Tu suscripción ya está activa. El comprobante de pago llega por correo.';
+    const b = document.getElementById('simFacturaPendiente');
+    b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on);
+  }
+  document.getElementById('simFacturaPendiente').addEventListener('click', () => setFacturaPendiente(!FACTURA_PENDIENTE));
+
   function mostrarDone(tipo) {
     const plan = planSeleccionado();
     donePlan.textContent = plan.label;
@@ -1138,13 +1202,17 @@ select.bims-input { box-shadow: var(--shadow-field); }
     } else {
       // Por vencer o Vencido (o Activo) + pago con tarjeta (Bancard) → Activo (ciclo nuevo)
       ESTADO_DESTINO = 'activo';
+      DESTINO_QUERY = '';
       doneTitle.textContent = 'Pago aprobado';
-      doneSub.textContent = 'Tu suscripción ya está activa. El comprobante de pago llega por correo.';
+      setFacturaPendiente(FACTURA_PENDIENTE);
       doneMetodo.textContent = 'Tarjeta de crédito/débito';
       doneFileRow.hidden = true;
       doneMontoLabel.textContent = 'Monto pagado';
       doneRestartWrap.hidden = true;
     }
+    // Factura pendiente: solo aplica al pago aprobado
+    document.getElementById('protoFactura').hidden = tipo !== 'tarjeta';
+    if (tipo !== 'tarjeta') document.getElementById('facturaPendiente').hidden = true;
     setTag(ESTADO_DESTINO);
     sinEnviar.hidden = true;
     document.getElementById('payFlow').hidden = true;
@@ -1238,7 +1306,7 @@ select.bims-input { box-shadow: var(--shadow-field); }
   document.getElementById('doneVerCuenta').addEventListener('click', () => { location.href = 'index.html?estado=' + ESTADO_DESTINO + DESTINO_QUERY; });
 
   // NUEVO: entrada directa por querystring para el proto — ?paso=redireccion o
-  // ?bancard=ok|rechazado|cancelado (se combinan con ?estado=... y, donde se puede elegir plan,
+  // ?bancard=ok|rechazado|cancelado (con ?factura=pendiente para la factura pendiente) (se combinan con ?estado=... y, donde se puede elegir plan,
   // con ?plan=semestral; ej. pagar-suscripcion.html?estado=vencido&plan=semestral&bancard=rechazado).
   // ?retorno=aprobado|rechazado sigue funcionando como alias de ?bancard=.
   (function () {
