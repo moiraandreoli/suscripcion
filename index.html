@@ -445,6 +445,11 @@ select.bims-input { box-shadow: var(--shadow-field); }
 .bims-alert-warning p { margin: 4px 0 0; }
 .bims-alert-warning a { color: #8a6d3b; text-decoration: underline; }
 .bims-alert-warning__nota { margin-top: 10px !important; padding-top: 10px; border-top: 1px solid #faebcc; font-size: 12px; }
+/* NUEVO: no validado contra prod — datos del pago en revisión (monto, fecha de carga, medio) dentro del aviso */
+.revision-body { flex: 1; min-width: 0; }
+.revision-datos { display: flex; flex-wrap: wrap; gap: 8px 32px; margin: 8px 0 10px; }
+.revision-datos dt { font-size: 12px; }
+.revision-datos dd { margin: 0; font-family: var(--bims-font-bold); font-weight: 700; }
 
 /* KPIs como paneles */
 .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
@@ -711,14 +716,19 @@ tr.sub:hover td { background: #eef2f5; }
           <a href="?estado=revision" data-estado="revision">En revisión</a>
         </div>
       </div>
-      <!-- NUEVO: no validado contra prod — aviso de pago ya enviado, en validación (evita que se pague de nuevo). Solo visible en En revisión -->
+      <!-- NUEVO: no validado contra prod — bloque de pago en revisión (monto, fecha de carga, medio, prórroga y comprobante). Solo visible en En revisión -->
       <div class="bims-alert-warning" id="avisoRevision" hidden>
         <span class="bims-alert-warning__icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
-        <div>
-          <b>Estamos validando tu pago de <span id="avisoMonto">Gs. 1.527.400</span>.</b>
-          <p>Recibimos tu pago por transferencia el <span id="avisoFecha">25/09/2026</span>. La validación puede demorar hasta 48 horas hábiles. Mientras tanto, podés seguir usando BIMS con normalidad. Te avisaremos cuando el pago esté validado.</p>
+        <div class="revision-body">
+          <b>Pago en revisión</b>
+          <dl class="revision-datos">
+            <div><dt>Monto pagado</dt><dd id="avisoMonto">Gs. 1.666.000</dd></div>
+            <div><dt>Fecha de carga</dt><dd id="avisoFecha">25-09-2026 10:24 hs</dd></div>
+            <div><dt>Medio de pago</dt><dd>Transferencia</dd></div>
+          </dl>
+          <p>Tu cuenta sigue activa hasta el <span id="avisoProrroga">29-09-2026 a las 10:24 hs</span> mientras validamos el pago.</p>
           <p><a href="#" data-doc="comprobante1">Ver comprobante</a></p>
-          <p class="bims-alert-warning__nota">¿Enviaste un comprobante equivocado? Escribinos a <a href="mailto:facturacion@bimsapp.com">facturacion@bimsapp.com</a></p>
+          <p class="bims-alert-warning__nota">¿Te equivocaste de comprobante? Escribí a <a href="mailto:facturacion@bimsapp.com">facturacion@bimsapp.com</a></p>
         </div>
       </div>
       <!-- B: destacado cálido (amarillo del número de comprobante de prod) — oculto en Activo y En revisión -->
@@ -815,7 +825,7 @@ tr.sub:hover td { background: #eef2f5; }
     <div class="bims-modal__head">
       <div>
         <h3 class="bims-modal__title" id="docModalTitle">Comprobante</h3>
-        <p class="bims-modal__sub" id="docModalSub">Enviado el 25-09-2026 · Solo lectura</p>
+        <p class="bims-modal__sub" id="docModalSub">Cargado el 25-09-2026 10:24 hs · Solo lectura</p>
       </div>
       <button class="bims-modal__close" data-close-doc aria-label="Cerrar">×</button>
     </div>
@@ -824,7 +834,7 @@ tr.sub:hover td { background: #eef2f5; }
         <svg width="34" height="41" viewBox="0 0 30 36"><path d="M2 0h18l10 10v24a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2z" fill="#e5533d"/><path d="M20 0v8a2 2 0 0 0 2 2h8z" fill="#f29b8c"/></svg>
         <div class="docmodal-file__name" id="docModalFile">comprobante-transferencia-sudameris.pdf</div>
       </div>
-      <p class="docmodal-note">Este documento no se puede reemplazar desde BIMS. Si enviaste uno equivocado, escribinos a <a href="mailto:facturacion@bimsapp.com">facturacion@bimsapp.com</a>.</p>
+      <p class="docmodal-note">No podés reemplazar ni eliminar este comprobante desde BIMS. ¿Te equivocaste de comprobante? Escribí a <a href="mailto:facturacion@bimsapp.com">facturacion@bimsapp.com</a></p>
     </div>
     <div class="bims-modal__foot">
       <button class="bims-btn bims-btn--default" data-close-doc>Cerrar</button>
@@ -875,14 +885,16 @@ tr.sub:hover td { background: #eef2f5; }
   // NUEVO: Estados de la suscripción (no existe en prod tal cual)
   // El estado se pasa entre pantallas con ?estado=activo|por-vencer|vencido|revision
   // "revision" se alcanza por el flujo de pago (transferencia) o directo desde el
-  // selector del proto / la URL.
-  // Comprobante rechazado: NO implementado, estado a definir con negocio.
+  // selector del proto / la URL. En revisión no se puede iniciar otro pago del mismo
+  // período: se ocultan la barra de pago y la promo.
+  // Rechazo de Administración, diferencias de monto y vencimiento de la prórroga:
+  // NO implementados, reglas a definir con negocio.
   // =========================================================
   const ESTADOS = {
     'activo':      { label: 'Activo',      badge: 'success' },
     'por-vencer':  { label: 'Por vencer',  badge: 'warning' },
     'vencido':     { label: 'Vencido',     badge: 'danger'  },
-    'revision':    { label: 'En revisión', badge: 'warning', dot: true },
+    'revision':    { label: 'En revisión', badge: 'warning', dot: true, extra: 'sub-tag--revision' },
   };
   function getEstado() {
     const p = new URLSearchParams(location.search).get('estado');
@@ -891,21 +903,29 @@ tr.sub:hover td { background: #eef2f5; }
   function fmtGs(n) { return 'Gs. ' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
   function parseGs(s) { return Number(String(s).replace(/[^\d]/g, '')) || 0; }
 
-  // NUEVO: fecha en la que se envió el pago que está en revisión — dato de ejemplo fijo de este proto
-  const FECHA_PAGO_ENVIADO = '25-09-2026';
+  // NUEVO: datos de ejemplo fijos del pago en revisión (los mismos que usa pagar-suscripcion.html
+  // en la confirmación). La prórroga es de 48 horas hábiles desde la carga: vie 25-09 → mar 29-09.
+  // No se calcula con aritmética de fechas, igual que el resto del proto.
+  const FECHA_CARGA = '25-09-2026', HORA_CARGA = '10:24 hs';
+  const PRORROGA_HASTA = '29-09-2026 a las 10:24 hs';
+  const ARCHIVO_EJEMPLO = 'comprobante-transferencia-sudameris.pdf';
+  const QP = new URLSearchParams(location.search);
 
   (function aplicarEstado() {
     const estado = getEstado();
     const cfg = ESTADOS[estado];
     const enRevision = estado === 'revision';
-    // Los montos quedan congelados (ya no crecen) solo en Vencido.
-    // En revisión NO es "congelado": ya se pagó (vía transferencia) el monto de
-    // Activo/Por vencer (Gs. 1.527.400) y se está validando — ver CLAUDE.md.
-    const congelado = estado === 'vencido';
+    // Los montos quedan congelados (ya no crecen) en Vencido, y en En revisión cuando el
+    // pago se hizo con la cuenta Vencida (?origen=vencido, que también es el ejemplo por
+    // defecto: el pago del 25-09-2026 es posterior al vencimiento del 18-09-2026). Así el
+    // detalle de consumos coincide con el monto pagado. Si el pago se hizo en Activo o
+    // Por vencer (?origen=activo|por-vencer), el detalle queda "hasta hoy".
+    const origenPago = ['activo', 'por-vencer'].includes(QP.get('origen')) ? QP.get('origen') : 'vencido';
+    const congelado = estado === 'vencido' || (enRevision && origenPago === 'vencido');
 
     // Tag junto al título
     const tag = document.getElementById('stateTag');
-    tag.className = 'bims-badge bims-badge--' + cfg.badge + (cfg.dot ? ' bims-badge--dot' : '');
+    tag.className = 'bims-badge bims-badge--' + cfg.badge + (cfg.dot ? ' bims-badge--dot' : '') + (cfg.extra ? ' ' + cfg.extra : '');
     tag.innerHTML = (cfg.dot ? '<span class="bims-badge__dot"></span>' : '') + cfg.label;
 
     // Selector del proto: marca el botón activo
@@ -952,23 +972,30 @@ tr.sub:hover td { background: #eef2f5; }
     }
     document.querySelector('.paybar__value').textContent = fmtGs(totalHoy);
 
-    // ---- En revisión: aviso de que ya se pagó y está en validación ----
+    // ---- En revisión: bloque del pago que se está validando ----
     document.getElementById('avisoRevision').hidden = !enRevision;
+    // No se puede iniciar otro pago del mismo período: sin barra "Pagar" (la promo, con su
+    // link al simulador y a pagar, ya se oculta arriba)
+    document.querySelector('.paybar').hidden = enRevision;
     if (enRevision) {
-      // Si se llega desde un pago real (pagar-suscripcion.html pasa ?monto=&fecha=), se usa
-      // ese monto/fecha en vez del ejemplo fijo — así la confirmación y este aviso coinciden
-      // sin importar desde qué estado se haya originado el pago (Activo, Por vencer o Vencido).
-      const qp = new URLSearchParams(location.search);
-      const montoRevision = qp.get('monto') ? Number(qp.get('monto')) : totalHoy;
-      const fechaRevision = qp.get('fecha') || FECHA_PAGO_ENVIADO;
+      // Si se llega desde un pago real, pagar-suscripcion.html pasa ?monto= (y ?archivo=): se usa
+      // ese monto para que este bloque coincida con la confirmación. Si falta, el ejemplo es el
+      // total de una cuenta Vencida con Plan Mensual (Gs. 1.666.000), calculado desde la tabla.
+      const montoRevision = QP.get('monto') ? Number(QP.get('monto')) : totalHoy;
       document.getElementById('avisoMonto').textContent = fmtGs(montoRevision);
-      document.getElementById('avisoFecha').textContent = fechaRevision.replace(/-/g, '/');
+      document.getElementById('avisoFecha').textContent = FECHA_CARGA + ' ' + HORA_CARGA;
+      document.getElementById('avisoProrroga').textContent = PRORROGA_HASTA;
+      // El primer panel deja de decir "A pagar": ese monto ya se pagó y está en validación
+      kpi1Label.firstChild.textContent = 'Pago en revisión ';
+      kpi1Label.querySelector('.kpi__info').dataset.tip = 'Monto del pago que estamos validando.';
+      kpis[0].querySelector('.kpi__value').textContent = fmtGs(montoRevision);
+      kpis[0].querySelector('.kpi__note').textContent = 'Transferencia cargada el ' + FECHA_CARGA + ' ' + HORA_CARGA + '.';
     }
   })();
 
   // ---- Modal de comprobante (solo lectura) ----
   const DOCS = {
-    comprobante1: { title: 'Comprobante', file: 'comprobante-transferencia-sudameris.pdf', fecha: '25-09-2026' },
+    comprobante1: { title: 'Comprobante', file: QP.get('archivo') || ARCHIVO_EJEMPLO, fecha: FECHA_CARGA + ' ' + HORA_CARGA },
   };
   const docModal = document.getElementById('docModal');
   function openDocModal(key) {
@@ -976,7 +1003,7 @@ tr.sub:hover td { background: #eef2f5; }
     if (!d || !docModal) return;
     document.getElementById('docModalTitle').textContent = d.title;
     document.getElementById('docModalFile').textContent = d.file;
-    document.getElementById('docModalSub').textContent = 'Enviado el ' + d.fecha + ' · Solo lectura';
+    document.getElementById('docModalSub').textContent = 'Cargado el ' + d.fecha + ' · Solo lectura';
     docModal.hidden = false;
     requestAnimationFrame(() => docModal.classList.add('is-in'));
     document.body.style.overflow = 'hidden';

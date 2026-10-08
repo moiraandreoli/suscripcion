@@ -5,7 +5,7 @@ suscripción de BIMS. Dos pantallas:
 
 - `index.html` — Resumen de suscripción ("suscripcion-resumen"). Muestra el estado de
   la cuenta, el detalle de consumos y adicionales, y lleva a pagar. En En revisión
-  suma un aviso de que ya hay un pago en validación.
+  muestra el bloque del pago que se está validando y no deja iniciar otro pago.
 - `pagar-suscripcion.html` — Selección de plan, método de pago (transferencia o
   tarjeta) y confirmación.
 
@@ -23,7 +23,7 @@ Un tag junto al título (`#stateTag`) muestra el estado en las dos pantallas:
 | Activo       | verde (`bims-badge--success`)  | |
 | Por vencer   | amarillo (`bims-badge--warning`) | |
 | Vencido      | rojo (`bims-badge--danger`)   | |
-| En revisión  | amarillo + punto que late (`bims-badge--dot`) | En el selector del proto y alcanzable por flujo |
+| En revisión  | amarillo + punto que late (`bims-badge--dot`) | En el selector del proto y alcanzable por flujo. Lleva además la clase `sub-tag--revision` (pedida en el brief; es solo un hook, sin estilos propios — los colores salen de `bims-badge--warning`) |
 
 ### Transiciones implementadas
 
@@ -34,21 +34,22 @@ Un tag junto al título (`#stateTag`) muestra el estado en las dos pantallas:
   forma universal (cualquier estado + tarjeta → Activo), ya que pagar con tarjeta
   siempre deja la cuenta al día. El pago con tarjeta redirige a Bancard — ver
   "Pago con tarjeta → pasarela de Bancard" más abajo; esta transición solo ocurre si
-  se simula la vuelta como "aprobado" (si se simula "rechazado", el tag no cambia).
-- **Cualquier estado + comprobante de transferencia → En revisión** ("Ver estado del
-  pago" e "Ir al inicio" llevan siempre a `?estado=revision`, con el monto y la fecha
-  reales del pago — ver "En revisión" más abajo). Esto **cambió**: antes, si el origen
-  era Activo o Por vencer, el tag se quedaba igual y solo la confirmación aclaraba
-  "Pago en revisión"; ahora ese caso también navega a la vista de En revisión, para
-  que el usuario vea el aviso y no pague de nuevo.
+  se simula la vuelta como "aprobado" (con "rechazado" o "cancelado" el tag no cambia).
+- **Cualquier estado + comprobante de transferencia ENVIADO → En revisión**. El tag de
+  `pagar-suscripcion.html` cambia recién al enviar (`setTag(ESTADO_DESTINO)` en
+  `mostrarDone()`): elegir o cargar el archivo sin enviarlo no lo cambia. "Ver estado
+  del pago" e "Ir al inicio" llevan siempre a `?estado=revision` (ver "En revisión"
+  más abajo).
 - **En revisión + validación de Operaciones → Activo** (no simulado: no hay un panel
   de Operaciones en este proto; se llegaría manualmente cambiando el querystring).
 
-### Comprobante rechazado — NO implementado
+### Reglas todavía sin definir — NO implementadas
 
-Buscar `TODO` / el comentario `Comprobante rechazado: NO implementado` en el `<script>`
-de ambas pantallas. Estado a definir con negocio (¿vuelve a Vencido? ¿un estado nuevo
-"Rechazado"? ¿reintento directo?). No hay UI ni lógica para este caso.
+Por pedido explícito del brief, no hay UI ni lógica para: **rechazo del comprobante
+por Administración**, **diferencias de monto** entre lo transferido y lo adeudado, y
+**vencimiento de la prórroga** (qué pasa el 29-09-2026 a las 10:24 hs si el pago no
+se validó). Hay un comentario en el `<script>` de ambas pantallas. No agregar nada de
+esto hasta que negocio defina las reglas.
 
 ### Cómo se pasa el estado entre pantallas
 
@@ -58,22 +59,34 @@ falta o es inválido). `index.html` arma el link de "Ir a pagar" con el estado a
 sesión de esa pantalla) y decide a dónde vuelven "Ir al inicio" / "Ver estado del
 pago" según lo que pasó (`ESTADO_DESTINO`).
 
-Para una transferencia, además se pasan `&monto=<Gs>&fecha=<DD-MM-AAAA>` (el `TOTAL`
-pagado y la fecha real, `DESTINO_QUERY` en el script) — así `index.html?estado=revision`
-muestra el monto/fecha que realmente se pagó, sea cual sea el estado de origen, en vez
-de mostrar siempre el mismo ejemplo fijo. Si esos parámetros faltan (por ejemplo, si se
-entra a `?estado=revision` directo desde el selector), se usan valores de ejemplo:
-`Gs. 1.527.400` y `25-09-2026`.
+Para una transferencia, además se pasan (`DESTINO_QUERY` en el script):
 
-`pagar-suscripcion.html` además acepta `?paso=redireccion` y
-`?retorno=aprobado|rechazado` para entrar directo a cualquier paso del pago con
-tarjeta/Bancard (se combinan con `?estado=`) — ver "Pago con tarjeta" más abajo.
+- `&monto=<Gs>` — el `TOTAL` pagado, para que el bloque de En revisión coincida con
+  la confirmación.
+- `&origen=activo|por-vencer|vencido` — el estado desde el que se pagó, para que el
+  detalle de consumos de `index.html` coincida con ese monto (congelado si se pagó
+  Vencido, "hasta hoy" si no).
+- `&archivo=<nombre>` — el nombre del archivo enviado, que muestra "Ver comprobante".
+
+Si faltan (por ejemplo, entrando a `?estado=revision` desde el selector), se usa el
+ejemplo fijo: `Gs. 1.666.000` (el total de una cuenta Vencida con Plan Mensual),
+origen `vencido` y `comprobante-transferencia-sudameris.pdf`. **Ya no se pasa
+`&fecha=`**: la fecha de carga es un dato fijo del proto (ver "Datos de ejemplo").
+
+`pagar-suscripcion.html?estado=revision` **redirige a `index.html?estado=revision`**
+(`location.replace`): con un pago en revisión no se puede iniciar otro pago del mismo
+período.
+
+`pagar-suscripcion.html` además acepta `?paso=redireccion`,
+`?bancard=ok|rechazado|cancelado` y `?plan=semestral` para entrar directo a cualquier
+paso del pago con tarjeta/Bancard (se combinan con `?estado=`) — ver "Pago con
+tarjeta" más abajo.
 
 ### Selector del proto
 
 En `index.html`, arriba del contenido: `Activo | Por vencer | Vencido | En revisión`
 (`.proto-state-selector`, `<!-- NUEVO -->`). Son links a `?estado=...` (sin `monto`/
-`fecha`, así que "En revisión" desde acá siempre muestra el ejemplo fijo), no un
+`origen`/`archivo`, así que "En revisión" desde acá siempre muestra el ejemplo fijo), no un
 control interactivo sin recarga — cada click navega. Vive solo en `index.html`;
 `pagar-suscripcion.html` no lo repite, solo lee el estado que llega por URL.
 
@@ -86,10 +99,9 @@ control interactivo sin recarga — cada click navega. Vive solo en `index.html`
 - El monto de "adicionales" en Vencido es el mismo que ya se mostraba como "Estimado
   al cierre" en Activo/Por vencer — no es casualidad: es el valor que el ciclo
   alcanza al llegar a la fecha de vencimiento.
-- **En revisión NO es un estado "congelado"** en `index.html`: ya se pagó (el monto
-  y la fecha que llegan por querystring, o el ejemplo `Gs. 1.527.400` si no hay
-  ninguno) y se está esperando la validación — no hay un saldo que siga creciendo o
-  se haya frenado. `congelado` en el script de `index.html` significa solo Vencido.
+- **En revisión** no tiene saldo a pagar: ya se pagó y se espera la validación. En
+  `index.html`, `congelado` es Vencido **o** En revisión con `origen=vencido` (el
+  default) — así el detalle de consumos suma lo mismo que el monto pagado.
 
 ### Datos de ejemplo del proto (fijos, no se recalculan por fecha real)
 
@@ -97,8 +109,17 @@ control interactivo sin recarga — cada click navega. Vive solo en `index.html`
 - Adicionales hasta hoy: `Gs. 1.187.400` · Adicionales hasta el vencimiento (congelado): `Gs. 1.326.000`.
 - **Activo / Por vencer** → `340.000 + 1.187.400 = Gs. 1.527.400`.
 - **Vencido** (plan mensual) → `340.000 + 1.326.000 = Gs. 1.666.000`.
-- Plan Semestral (180 días, 20% off): `Gs. 1.632.000` (antes `Gs. 2.040.000`). Solo
-  elegible en Vencido → total con semestral: `1.632.000 + 1.326.000 = Gs. 2.958.000`.
+- Plan Semestral (180 días, 20% off): `Gs. 1.632.000` (antes `Gs. 2.040.000`).
+  Elegible en Por vencer y Vencido → en Vencido: `1.632.000 + 1.326.000 = Gs. 2.958.000`;
+  en Por vencer: `1.632.000 + 1.187.400 = Gs. 2.819.400`.
+- **Pago por transferencia en revisión**: fecha de carga `25-09-2026 10:24 hs`, medio
+  "Transferencia", monto de ejemplo `Gs. 1.666.000`, prórroga hasta el
+  `29-09-2026 a las 10:24 hs` (48 horas hábiles: viernes 25 → martes 29). Son las
+  constantes `FECHA_CARGA`, `HORA_CARGA` y `PRORROGA_HASTA`, **repetidas en el script
+  de las dos pantallas** — si cambian, hay que cambiarlas en ambas. La prórroga no se
+  calcula con aritmética de fechas. La confirmación de transferencia muestra esa
+  misma fecha fija (ya no la fecha real del navegador); la de tarjeta sigue mostrando
+  la fecha real.
 
 ### Dónde coinciden los montos (una sola fuente de verdad por pantalla)
 
@@ -160,36 +181,40 @@ tres puntos de arriba.
 
 ## Estado "En revisión" en suscripcion-resumen.html (`?estado=revision`)
 
-Alcance reducido a pedido: solo el aviso y el estado en sí. El resto de la pantalla
-(panel "A pagar hoy", barra inferior con el botón "Pagar", promo, tabla de consumos)
-**se comporta igual que en cualquier otro estado no congelado** — no hay ninguna
-rama especial para "revision" ahí. Lo único que cambia:
+- **Tag** en el header (`#stateTag`, amarillo con punto, clase extra
+  `sub-tag--revision`) y el 4to botón del selector del proto ("En revisión").
+- **Bloque de pago en revisión** arriba del todo (`#avisoRevision`, `<!-- NUEVO -->`,
+  sobre `.bims-alert-warning`): título "Pago en revisión", tres datos
+  (`.revision-datos`: Monto pagado, Fecha de carga `25-09-2026 10:24 hs`, Medio de
+  pago "Transferencia"), el texto "Tu cuenta sigue activa hasta el 29-09-2026 a las
+  10:24 hs mientras validamos el pago.", el link "Ver comprobante" y el texto
+  secundario "¿Te equivocaste de comprobante? Escribí a facturacion@bimsapp.com"
+  (mailto).
+- **"Ver comprobante"** abre `#docModal` (reutiliza `.bims-modal`): solo lectura, con
+  el nombre del archivo y la fecha de carga, sin opción de reemplazar ni eliminar
+  (el único botón es "Cerrar"). No hay almacenamiento real de archivos.
+- **No se puede iniciar otro pago del mismo período**: se oculta la barra inferior
+  con "Pagar" (`.paybar`) y la promo de 180 días (que lleva al simulador y de ahí a
+  pagar). No queda ningún link visible a `pagar-suscripcion.html`, y esa pantalla
+  redirige de vuelta si se entra con `?estado=revision`.
+- **Primer panel**: deja de decir "A pagar hoy" y pasa a "Pago en revisión" con el
+  monto pagado y "Transferencia cargada el 25-09-2026 10:24 hs." (es solo un cambio
+  de label/valor del mismo `.kpi`, no un panel nuevo).
+- **Monto**: el que llega por `?monto=`; si falta, el total de la tabla, que con el
+  origen por defecto (`vencido`) da `Gs. 1.666.000` — el mismo total que muestra
+  `pagar-suscripcion.html?estado=vencido`.
+- **Queda igual que en los otros estados**: la tabla de consumos (la columna se sigue
+  llamando "A pagar hoy") y el segundo panel. Si el pago incluyó el Plan Semestral,
+  el monto pagado no coincide con el total de la tabla, que siempre lista el plan de
+  30 días del ciclo actual.
 
-- **Tag** en el header (`#stateTag`, amarillo con punto) y el 4to botón del selector
-  del proto ("En revisión").
-- **Aviso arriba del todo** (`#avisoRevision`, `<!-- NUEVO -->`): alert-warning de
-  Bootstrap 3 (fondo `#fcf8e3`, texto `#8a6d3b` — no estaba en el kit, se agregó como
-  `.bims-alert-warning`) con "Estamos validando tu pago de `Gs. X`", la fecha de
-  envío, "Ver comprobante" (abre un modal de solo lectura, `#docModal`, reutiliza
-  `.bims-modal` — no hay almacenamiento de archivos real en el proto) y la nota
-  chica de "¿enviaste un comprobante equivocado? escribinos a
-  facturacion@bimsapp.com".
-- **Monto y fecha reales, no siempre el mismo ejemplo**: si se llega desde un pago
-  real, `pagar-suscripcion.html` pasa `&monto=&fecha=` (ver "Cómo se pasa el estado
-  entre pantallas" arriba) y el aviso los usa; si faltan (p. ej. entrando por el
-  selector del proto), usa el ejemplo fijo `Gs. 1.527.400` / `25-09-2026`. Verificado
-  con Puppeteer que una transferencia desde Activo y una desde Vencido (monto
-  distinto, `Gs. 1.666.000`) navegan a `?estado=revision` y el aviso muestra el
-  monto/fecha reales de cada una, coincidiendo con lo que mostró la confirmación.
-
-**Se sacó** (existió brevemente, pedido explícito de simplificar): el panel
-"Pago en revisión" reemplazando "A pagar hoy", la barra inferior sin botón, la nota
-de adicionales en la tabla de consumos, y la sección "Pagos recientes" con el
-historial de pagos — quedaron en el historial de git si hace falta retomarlos.
+Sigue sin implementarse la sección "Pagos recientes" (historial); quedó en el
+historial de git.
 
 ## Sección "Plan" en pagar-suscripcion.html
 
-- **Activo o En revisión**: informativa, sin radio buttons (`#planInfo`). Muestra el
+- **Activo**: informativa, sin radio buttons (`#planInfo`). (En revisión ya no llega
+  a esta pantalla: redirige al resumen.) Muestra el
   plan que se está renovando — en este proto, siempre Plan Mensual (el dataset de
   ejemplo no contempla cuentas cuyo plan activo sea el semestral).
 - **Por vencer o Vencido**: selector real (`#planPicker`) — 30 días o 180 días, con
@@ -228,31 +253,66 @@ que redirige a Bancard. Pantallas nuevas, todas marcadas `<!-- NUEVO -->`:
    un `setTimeout`; se sacó porque un navegador real lo bloquea casi siempre al no
    venir de un click directo, y de paso dejaba sin ver los links de simulación hasta
    que ese intento terminaba.)
-4. **Vuelta de Bancard (simulada)**: los links de proto "Simular pago aprobado" /
-   "Simular pago rechazado" (`#bancardProtoLinks`) están siempre visibles en la
-   pantalla de transición. En prod, Bancard redirige de nuevo a BIMS con el resultado
-   real; acá no hay backend que lo reciba, así que se simula a mano.
-   - **Aprobado** → `mostrarDone('tarjeta')`: la confirmación de siempre, tag →
+4. **Vuelta de Bancard (simulada)**: controles de proto con borde punteado
+   (`.proto-switch` dentro de `#bancardProtoLinks`) — "Bancard aprobado / rechazado /
+   cancelado" — siempre visibles en la pantalla de transición. En prod, Bancard
+   redirige de nuevo a BIMS con el resultado real; acá no hay backend que lo reciba.
+   Todo pasa por `volverDeBancard(resultado)`:
+   - **Aprobado** (`ok`) → `mostrarDone('tarjeta')`: la confirmación de siempre, tag →
      Activo, título "Pago aprobado".
-   - **Rechazado** → `#bancardError`: "No pudimos procesar el pago" / "Bancard
-     rechazó la operación. No se hizo ningún cobro.", botones "Intentar de nuevo"
-     (vuelve a `#payFlow` con tarjeta ya seleccionada) y "Pagar por transferencia"
-     (cambia el método y vuelve a `#payFlow`). El tag **no cambia** — nunca se toca
-     `ESTADO_DESTINO` en este camino.
+   - **Rechazado** → vuelve a `#payFlow` (paso de método de pago) con alert-danger en
+     `#bancardAviso`: "Bancard rechazó el pago. No se hizo ningún cobro. Probá con
+     otra tarjeta o pagá por transferencia."
+   - **Cancelado** → vuelve a `#payFlow` con alert-info: "Cancelaste el pago en
+     Bancard. No se hizo ningún cobro."
+   - En rechazo y cancelación **se conservan el plan, el resumen de pago y el método**
+     (tarjeta sigue seleccionada, con su botón de pago listo para reintentar) y el tag
+     **no cambia** — nunca se toca `ESTADO_DESTINO` en ese camino. El aviso se oculta
+     al cambiar de método o al volver a ir a Bancard.
+   - **Se sacó** la pantalla intermedia `#bancardError` ("No pudimos procesar el
+     pago", con "Intentar de nuevo" / "Pagar por transferencia"): el rechazo ahora
+     deja al cliente directamente en el paso de método de pago.
 5. **Entrada directa para probar** (se combinan con `?estado=`): `?paso=redireccion`
-   abre directo la pantalla de transición; `?retorno=aprobado` o `?retorno=rechazado`
-   abren directo cada resultado. Ej.:
-   `pagar-suscripcion.html?estado=vencido&paso=redireccion`.
+   abre la pantalla de transición; `?bancard=ok|rechazado|cancelado` abre cada
+   resultado con tarjeta ya seleccionada; `?plan=semestral` preselecciona el plan
+   donde se puede elegir. Ej.:
+   `pagar-suscripcion.html?estado=vencido&plan=semestral&bancard=rechazado`.
+   `?retorno=aprobado|rechazado` (el nombre anterior) sigue funcionando como alias.
 
 El monto es una sola fuente (`TOTAL`, calculada en `recomputeResumen()`): el botón de
 `#tarjeta`, la pantalla de transición y la confirmación siempre muestran el mismo
 número — verificado en Por vencer y Vencido, con Plan Mensual y Semestral.
 
+## Comprobante de transferencia: validación y archivo sin enviar
+
+En `pagar-suscripcion.html`, sección "Instrucciones de transferencia":
+
+- **Formatos**: PDF, JPG y PNG en cualquier ancho de pantalla (antes JPG solo en
+  mobile). Dropzone: "Subí tu comprobante en PDF, JPG o PNG".
+- **Errores**, en `#uploadError` (alert-danger, `role="alert"`), asociados al control
+  con `aria-describedby` + `aria-invalid` en el `<input type="file">`:
+  - Formato: "Subí el comprobante en PDF, JPG o PNG."
+  - Tamaño: "El archivo pesa X MB. Subí uno de hasta 5MB." (sin cambios)
+  - Archivo dañado: "No pudimos abrir este archivo. Intentá de nuevo."
+  Se validan en ese orden. Ninguno toca el plan, el método ni el total.
+- **Archivo dañado** (`archivoDanado()`): un archivo real se considera dañado si está
+  vacío o si sus primeros bytes no corresponden a su extensión (`%PDF`, firma PNG,
+  firma JPG). Es un criterio de prototipo, no una regla de negocio. Los archivos
+  simulados no tienen contenido: usan la marca `corrupt`.
+- **Links de proto**: "simular carga de un PDF", "simular archivo de más de 5MB" y
+  "simular archivo dañado" (`#demoCorrupt`).
+- **Archivo elegido sin enviar**: cuando termina la carga aparece debajo del archivo
+  "Todavía no enviaste el comprobante." (`#sinEnviar`, `.bims-upload__pending`,
+  `role="status"`) y se habilita el botón verde "Enviar comprobante" como acción
+  principal. El tag no cambia hasta que se envía. El aviso se oculta al quitar el
+  archivo o al enviar.
+
 ## Pendientes / a definir
 
 - **Inicio del ciclo nuevo al pagar con la cuenta Vencida**: no calculado (ver
   "Ciclos" arriba).
-- **Estado de "Comprobante rechazado"**: no implementado (ver arriba).
+- **Rechazo de Administración, diferencias de monto y vencimiento de la prórroga**:
+  no implementados, reglas sin definir (ver arriba).
 - **Validación de Operaciones** (En revisión → Activo): no hay una pantalla de
   operador en este proto; se simula solo navegando manualmente a `?estado=activo`.
 - **"Ver comprobante" es una vista de ejemplo** (`#docModal`), no hay almacenamiento
@@ -262,6 +322,8 @@ número — verificado en Por vencer y Vencido, con Plan Mensual y Semestral.
   y se sacó a pedido para dejar el alcance de "En revisión" acotado solo al aviso y
   al tag. Si se retoma, el punto a resolver es el mismo que ya se documentó: cómo
   reflejar el monto/fecha real de cada pago en vez de datos de ejemplo fijos.
+- **Botón "Pagar Gs. X con Bancard"**: se ve sin espacios ("PAGARGS. 2.819.400CON
+  BANCARD") — bug visual previo, sin corregir.
 - El selector de estado y el querystring son un recurso de prototipo — en prod el
   estado saldría del backend, no de una URL.
 
@@ -271,5 +333,5 @@ número — verificado en Por vencer y Vencido, con Plan Mensual y Semestral.
 - ~~Solo se acepta transferencia~~ → se acepta transferencia y tarjeta, con la regla
   de cobro y las transiciones de cada una.
 - ~~"En revisión" solo se puede alcanzar por flujo, no se puede ver el pago hecho~~ →
-  ahora está en el selector del proto y tiene su aviso en `index.html`, con el
-  monto/fecha reales pasados desde la confirmación cuando vienen de un pago real.
+  ahora está en el selector del proto y tiene su bloque en `index.html`, con el
+  monto real pasado desde la confirmación cuando viene de un pago real.
